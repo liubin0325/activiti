@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Activiti-demo 演示</title>
+    <link rel="stylesheet" href="layui/css/layui.css" media="all">
+    <script src="layui/layui.all.js"></script>
+    <script src="lib/js/jquery-1.10.2.min.js"></script>
+</head>
+<body>
+<div class="layui-container">
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>创建表单</legend>
+    </fieldset>
+    <form class="layui-form" action="/forms/create" method="post">
+        <div class="layui-form-item">
+            <label class="layui-form-label">表单名称</label>
+            <div class="layui-input-block">
+                <input type="text" size="100" name="name" lay-verify="name" autocomplete="off" placeholder="请输入名称"
+                       class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">表单描述</label>
+            <div class="layui-input-block">
+                <input type="text" size="100" name="desc" lay-verify="desc" autocomplete="off" placeholder="请输入描述"
+                       class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <!--<button class="layui-btn" lay-submit="" lay-filter="demo1">立即提交</button>-->
+                <button lay-submit="" class="layui-btn">提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>表单列表</legend>
+    </fieldset>
+    <table class="layui-hide" id="formList" lay-filter="formList"></table>
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>表单设计器--暂无法编辑及设计</legend>
+    </fieldset>
+    <div class="layui-row">
+        <div class="layui-col-md12" id="editor" style="height: 500px;">
+
+        </div>
+        <div class="layui-col-md4 layui-col-lg-offset4">
+            <button class="layui-btn">保存</button>
+        </div>
+    </div>
+    <hr class="layui-bg-red">
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>缺少表单字段与流程定义及各个节点 绑定关系（可空、可见、可写）</legend>
+    </fieldset>
+    <hr class="layui-bg-red">
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>创建流程图</legend>
+    </fieldset>
+    <form class="layui-form" action="/models/create" method="post" target="_blank">
+        <div class="layui-form-item">
+            <label class="layui-form-label">名称</label>
+            <div class="layui-input-block">
+                <input type="text" size="100" name="name" lay-verify="name" autocomplete="off" placeholder="请输入名称"
+                       class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">描述</label>
+            <div class="layui-input-block">
+                <input type="text" size="100" name="desc" lay-verify="desc" autocomplete="off" placeholder="请输入描述"
+                       class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">表单模板</label>
+            <div class="layui-input-block">
+                <select id="modelForm" name="form" lay-verify="required">
+
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button lay-submit="" class="layui-btn">提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>流程图列表</legend>
+    </fieldset>
+    <table class="layui-hide" id="modelList" lay-filter="modelList"></table>
+
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>已发布流程</legend>
+    </fieldset>
+    <table class="layui-hide" id="processList" lay-filter="processList"></table>
+    <hr class="layui-bg-red">
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>开始表单渲染</legend>
+        <input type="hidden" id="procId">
+    </fieldset>
+    <form action="" id="renderForm"></form>
+    <div class="layui-form-item">
+        <div class="layui-input-block">
+            <button onclick="startProcess()" class="layui-btn">开启流程</button>
+        </div>
+    </div>
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>任务列表</legend>
+    </fieldset>
+    <table class="layui-hide" id="taskList" lay-filter="taskList">
+
+    </table>
+
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>任务表单渲染</legend>
+        <input type="hidden" id="taskId">
+    </fieldset>
+    <form action="" id="renderTaskForm"></form>
+    <form class="layui-form">
+        <div class="layui-form-item">
+            <label class="layui-form-label">审核意见</label>
+            <div class="layui-input-block">
+                <select id="status" name="interest" lay-filter="aihao">
+                    <option value="0">请选择</option>
+                    <option value="1">同意</option>
+                    <option value="2">退回上一节点</option>
+                    <option value="3">退回申请人</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">审核意见</label>
+            <div class="layui-input-block">
+                <textarea id="comment" placeholder="请输入审核意见" class="layui-textarea"></textarea>
+            </div>
+        </div>
+    </form>
+    <div class="layui-input-block">
+        <button class="layui-btn" onclick="checkWorkFlow()">确定</button>
+    </div>
+
+</div>
+</body>
+<script type="text/html" id="formBar">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑表单</a>
+</script>
+<script type="text/html" id="modelBar">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑流程图</a>
+    <a class="layui-btn layui-btn-xs" lay-event="deploy">发布</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</script>
+<script type="text/html" id="processBar">
+    <a class="layui-btn layui-btn-xs" lay-event="startForm">获取开始表单</a>
+</script>
+<script type="text/html" id="taskBar">
+    <a class="layui-btn layui-btn-xs" lay-event="startForm">获取表单</a>
+</script>
+<script type="text/javascript" charset="utf-8" src="/ueditor1_4_3_3/ueditor.config.js"></script>
+<script type="text/javascript" charset="utf-8" src="/ueditor1_4_3_3/ueditor.all.js"></script>
+<script type="text/javascript" charset="utf-8" src="/ueditor1_4_3_3/lang/zh-cn/zh-cn.js"></script>
+<script type="text/javascript" charset="utf-8" src="/ueditor1_4_3_3/myplugins.js"></script>
+<script src="js/index.js"></script>
+
+</html>

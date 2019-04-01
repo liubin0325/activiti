@@ -1,0 +1,41 @@
+/*button*/
+.edui-default  .edui-for-mytext  .edui-icon {
+    background: url( ../myimages/text.png ) no-repeat 2px 3px!important;
+}
+.edui-default  .edui-for-mytextarea  .edui-icon {
+    background: url( ../myimages/textarea.png ) no-repeat 2px 3px!important;
+}
+.edui-default  .edui-for-mydate  .edui-icon {
+    background: url( ../myimages/date.png ) no-repeat 2px 3px!important;
+}
+.edui-default  .edui-for-myradio  .edui-icon {
+    background: url( ../myimages/radio.png ) no-repeat 2px 3px!important;
+}
+.edui-default  .edui-for-mycheckbox  .edui-icon {
+    background: url( ../myimages/check.png ) no-repeat 2px 3px!important;
+}
+.edui-default  .edui-for-myselect  .edui-icon {
+    background: url( ../myimages/select.png ) no-repeat 2px 3px!important;
+}
+.edui-default  .edui-for-mylink  .edui-icon {
+    background: url( ../myimages/link.png ) no-repeat 2px 3px!important;
+}
+.edui-default  .edui-for-myrandom  .edui-icon {
+    background: url( ../myimages/random.png ) no-repeat 2px 3px!important;
+}
+.edui-default  .edui-for-mylistfield  .edui-icon {
+    background: url( ../myimages/listField.png ) no-repeat 2px 3px!important;
+}
+
+.MyDate
+{
+    font:normal 12px 宋体;
+    height:20px;
+    width:115px;
+	margin:1px 0px 1px 0px;
+	padding:2px 2px 0px 2px;
+	border:1px solid #b3b7d1;
+	background:url(../myimages/datePicker.gif) no-repeat right;
+	background-color:#faffff;
+	vertical-align:middle;
+}

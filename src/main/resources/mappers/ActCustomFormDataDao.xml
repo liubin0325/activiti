@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hx.activiti.demo.dao.ActCustomFormDataDao">
+    <insert id="save">
+        INSERT INTO `act_custom_form_data` (
+          `procdef_id`,
+          `business_key`,
+          `form_id`,
+          `data`,
+          `list_data`,
+          `data_extra`
+        )
+        VALUES
+          (
+            #{procdef_id},
+            #{business_key},
+            #{form_id},
+            #{data},
+            #{list_data},
+            #{data_extra}
+          ) ;
+    </insert>
+    <insert id="saveBatch"></insert>
+    <update id="update"></update>
+    <select id="getByBusinessKey" resultType="com.hx.activiti.demo.model.ActCustomFormData">
+        SELECT * FROM act_custom_form_data
+        where procdef_id=#{procdef_id} and business_key=#{businessKey}
+    </select>
+</mapper>

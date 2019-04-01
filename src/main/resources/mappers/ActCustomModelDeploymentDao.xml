@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hx.activiti.demo.dao.ActCustomModelDeploymentDao">
+    <insert id="save">
+        insert into act_custom_model_deployment
+            (deployment_id,
+              model_id
+            )
+            values
+            (#{deployment_id},
+            #{model_id}
+            );
+
+    </insert>
+    <select id="getByDeployment" resultType="com.hx.activiti.demo.model.ActCustomModelDeployment">
+        SELECT * FROM act_custom_model_deployment
+        where deployment_id=#{deployment}
+    </select>
+</mapper>

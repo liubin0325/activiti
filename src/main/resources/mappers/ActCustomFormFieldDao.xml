@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hx.activiti.demo.dao.ActCustomFormFieldDao">
+    <insert id="save">
+        INSERT INTO `act_custom_form_field` (
+          `field_id`,
+          `form_id`,
+          `param_name`,
+          `param_namechn`,
+          `datadefault`,
+          `datatype`,
+          `text_size`,
+          `text_rows`,
+          `datavalue`,
+          `content`,
+          `myplugins`,
+          `order_id`,
+          `islist`
+        )
+        VALUES
+          (
+            #{field_id},
+            #{form_id},
+            #{param_name},
+            #{param_namechn},
+            #{datadefault},
+            #{datatype},
+            #{text_size},
+            #{text_rows},
+            #{datavalue},
+            #{content},
+            #{myplugins},
+            #{order_id},
+            #{islist}
+          ) ;
+    </insert>
+    <insert id="saveBatch">
+        INSERT INTO `act_custom_form_field` (
+          `field_id`,
+          `form_id`,
+          `param_name`,
+          `param_namechn`,
+          `datadefault`,
+          `datatype`,
+          `text_size`,
+          `text_rows`,
+          `datavalue`,
+          `content`,
+          `myplugins`,
+          `order_id`,
+          `islist`
+        )
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+            #{item.field_id},
+            #{item.form_id},
+            #{item.param_name},
+            #{item.param_namechn},
+            #{item.datadefault},
+            #{item.datatype},
+            #{item.text_size},
+            #{item.text_rows},
+            #{item.datavalue},
+            #{item.content},
+            #{item.myplugins},
+            #{item.order_id},
+            #{item.islist}
+            )
+        </foreach>
+    </insert>
+    <update id="update">
+
+    </update>
+    <delete id="delByFormId">
+        Delete From act_custom_form_field
+        where form_id=#{formId}
+    </delete>
+    <select id="getByForm" resultType="com.hx.activiti.demo.model.ActCustomFormField">
+        SELECT * FROM act_custom_form_detail
+        where form_id=#{formId}
+    </select>
+    <select id="getById" resultType="com.hx.activiti.demo.model.ActCustomFormField">
+        SELECT * FROM act_custom_form_field
+        where field_id=#{fieldId}
+    </select>
+</mapper>
