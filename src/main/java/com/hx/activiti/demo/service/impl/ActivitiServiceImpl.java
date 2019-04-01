@@ -3,6 +3,9 @@ package com.hx.activiti.demo.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.hx.activiti.demo.activiti.cmd.TaskJumpCmd;
 import com.hx.activiti.demo.dao.ActCustomFormDao;
 import com.hx.activiti.demo.dao.ActCustomFormDataDao;
@@ -33,7 +36,9 @@ import org.activiti.engine.repository.DeploymentBuilder;
 import org.activiti.engine.repository.Model;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.runtime.ProcessInstance;
+import org.activiti.engine.task.Comment;
 import org.activiti.engine.task.Task;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -222,6 +227,40 @@ public class ActivitiServiceImpl implements ActivitiService {
         ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
 
         taskService.addComment(taskId, execution.getProcessInstanceId(), comments);
+        ActCustomFormData customFormData = formDataDao.getByBusinessKey(execution.getProcessDefinitionId(), execution.getBusinessKey());
+        if (customFormData == null) {
+            throw new HxException(-1, "表单数据不存在");
+        } else {
+            if (StringUtils.isNotEmpty(formData)) {
+                JsonArray newData = parseFormData(formData);
+                JsonArray oldData = parseFormData(customFormData.getData());
+                JsonArray array = new JsonArray();
+                for (int i = 0; i < newData.size(); i++) {
+                    boolean exist = false;
+                    String name = newData.get(i).getAsJsonObject().get("name").getAsString();
+                    //TODO 双层循环 优化
+                    for (int j = 0; j < oldData.size(); j++) {
+                        String oldName = oldData.get(j).getAsJsonObject().get("name").getAsString();
+                        if (name.equals(oldName)) {
+                            exist = true;
+                            oldData.get(j).getAsJsonObject().remove("value");
+                            oldData.get(j).getAsJsonObject().add("value", newData.get(i).getAsJsonObject().get("value"));
+                            break;
+                        }
+                    }
+                    if (!exist) {
+                        JsonObject jsonObject = new JsonObject();
+                        jsonObject.add("name", newData.get(i).getAsJsonObject().get("name"));
+                        jsonObject.add("value", newData.get(i).getAsJsonObject().get("value"));
+                        array.add(jsonObject);
+                    }
+                }
+                if (array.size() > 0) {
+                    oldData.addAll(array);
+                }
+                formDataDao.update(new ActCustomFormData(customFormData.getProcdef_id(), customFormData.getBusiness_key(), oldData.toString()));
+            }
+        }
         //取得流程定义
         HistoricTaskInstance hisTask = historyService
                 .createHistoricTaskInstanceQuery().taskId(taskId)
@@ -244,6 +283,14 @@ public class ActivitiServiceImpl implements ActivitiService {
         }
     }
 
+    @Override
+    public List<Comment> getTaskComments(String taskId) {
+        HistoricTaskInstance task = historyService.createHistoricTaskInstanceQuery().taskId(taskId).singleResult();
+        List<Comment> comments = taskService.getProcessInstanceComments(task.getProcessInstanceId());
+        Collections.sort(comments, (c1, c2) -> c1.getTime().getTime() > c2.getTime().getTime() ? 1 : -1);
+        return comments;
+    }
+
 
     /**
      * @param taskId 任务节点id
@@ -251,7 +298,7 @@ public class ActivitiServiceImpl implements ActivitiService {
      * @Description:(根据任务节点id判断该节点是否为会签节点)
      */
 
-    public boolean isMultiInstance(String taskId) {
+    private boolean isMultiInstance(String taskId) {
         boolean flag = false;
         Task task = taskService.createTaskQuery() // 创建任务查询
                 .taskId(taskId) // 根据任务id查询
@@ -277,7 +324,7 @@ public class ActivitiServiceImpl implements ActivitiService {
         return flag;
     }
 
-    public PvmActivity findFirstActivity(String processDefinitionId) {
+    private PvmActivity findFirstActivity(String processDefinitionId) {
         ProcessDefinitionEntity processDefinitionEntity = (ProcessDefinitionEntity)
                 repositoryService
                         .createProcessDefinitionQuery().processDefinitionId(processDefinitionId).latestVersion().singleResult();
@@ -288,5 +335,10 @@ public class ActivitiServiceImpl implements ActivitiService {
             return null;
         }
         return targetActivity;
+    }
+
+    private JsonArray parseFormData(String formData) {
+        JsonParser parser = new JsonParser();
+        return parser.parse(formData).getAsJsonArray();
     }
 }

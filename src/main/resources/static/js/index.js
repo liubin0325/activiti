@@ -164,7 +164,18 @@ layui.use(['form', 'table', 'element'], function () {
                 dataType: "json",
                 data:{id:taskId},
                 success: function (data) {
-                    $("#renderTaskForm").append(data.data);
+                    $("#renderTaskForm").append(data.data.form);
+
+                    table.render({
+                        elem: '#commentsList'
+                        , cols: [[ //标题栏
+                            {field: 'id', title: 'ID', width: 80}
+                            , {field: 'fullMessage', title: '审核意见'}
+                            , {field: 'userId', title: 'userId'}
+                            , {field: 'time', title: '时间'}
+                        ]]
+                        , data: data.data.comments
+                    });
                 }
             })
         }
@@ -245,11 +256,13 @@ function checkWorkFlow(){
     var status = $("#status").val();
     var comment = $("#comment").val();
     var taskId = $("#taskId").val();
+    var arrFormData = $("#renderTaskForm").serializeArray();
+    var formData = JSON.stringify(arrFormData);
     $.ajax({
         url: "/activiti/checkWorkFlow",
         type: "post",
         dataType: "json",
-        data: {id: taskId, status:status, comment:comment},
+        data: {id: taskId, status:status, comment:comment, data:formData},
         success: function (data) {
             layer.msg(data.message);
         }

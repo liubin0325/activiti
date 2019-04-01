@@ -2,8 +2,10 @@ package com.hx.activiti.demo.service;
 
 import com.hx.activiti.demo.model.vo.ActivitiProcessModel;
 import com.hx.activiti.demo.util.HxException;
+import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.Model;
+import org.activiti.engine.task.Comment;
 import org.activiti.engine.task.Task;
 
 import java.util.List;
@@ -69,6 +71,7 @@ public interface ActivitiService {
      * @throws Exception
      */
     Object getTaskFormData(String taskId) throws Exception;
+
     @Deprecated
     List<Task> getTaskList();
 
@@ -91,5 +94,16 @@ public interface ActivitiService {
      * @param comments
      */
     void checkWorkFlow(String taskId, Integer status, String comments, String formData) throws HxException;
+
+    /**
+     * 获取流程所有审核意见
+     *
+     * @param taskId
+     * @return
+     */
+    List<Comment> getTaskComments(String taskId);
+
+
+//    List<HistoricProcessInstance>
 
 }

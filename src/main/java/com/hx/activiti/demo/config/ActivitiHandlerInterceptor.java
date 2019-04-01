@@ -9,7 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
- * @description:
+ * @description: 测试拦截类
  * @author: liubin
  * @date: 2019-04-01
  */

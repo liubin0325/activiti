@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @description:
@@ -43,8 +45,11 @@ public class ActivitiController {
     }
 
     @RequestMapping("taskForm")
-    public HxResponse<Object> getTaskForm(@RequestParam("id") String taskId) throws Exception {
-        return new HxResponse<>(activitiService.getTaskFormData(taskId));
+    public HxResponse<Map> getTaskForm(@RequestParam("id") String taskId) throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("form", activitiService.getTaskFormData(taskId));
+        map.put("comments", activitiService.getTaskComments(taskId));
+        return new HxResponse<>(map);
     }
 
     @RequestMapping("checkWorkFlow")

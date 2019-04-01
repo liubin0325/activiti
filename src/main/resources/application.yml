@@ -11,9 +11,9 @@ spring:
       username: root
       password: qweqwe
 #      driverClassName: oracle.jdbc.driver.OracleDriver
-#      url: jdbc:oracle:thin:@192.168.1.252:1521:hx
-#      username: BJRL3_SYS
-#      password: BJRL3_SYS
+#      url: jdbc:oracle:thin:@127.0.0.1:1521:hx
+#      username: 123
+#      password: 123
       type: com.alibaba.druid.pool.DruidDataSource
       # 连接池的配置信息
       # 初始化大小，最小等待连接数量，最大等待连接数量，最大连接数
@@ -45,6 +45,7 @@ spring:
     cache: false
   activiti:
     check-process-definitions: false
+
 logging:
   level:
      com.hx : debug

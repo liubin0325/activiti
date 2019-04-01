@@ -17,7 +17,7 @@ public class ViewConfig extends WebMvcConfigurerAdapter {
     }
 
     @Override
-    public void addInterceptors(InterceptorRegistry registry){
+    public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new ActivitiHandlerInterceptor()).addPathPatterns("/**");
     }
 }

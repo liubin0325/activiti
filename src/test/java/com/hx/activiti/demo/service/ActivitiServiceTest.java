@@ -44,4 +44,9 @@ public class ActivitiServiceTest extends DemoApplicationTests {
     @Test
     public void deployProcess() {
     }
+
+    @Test
+    public void getTaskComments(){
+        System.out.println(gson.toJson(activitiService.getTaskComments("12515")));
+    }
 }

@@ -16,6 +16,12 @@ public class ActCustomFormData {
     public ActCustomFormData() {
     }
 
+    public ActCustomFormData(String procdef_id, String business_key, String data) {
+        this.procdef_id = procdef_id;
+        this.business_key = business_key;
+        this.data = data;
+    }
+
     public ActCustomFormData(String procdef_id, String business_key, String form_id, String data, String list_data, String data_extra) {
         this.procdef_id = procdef_id;
         this.business_key = business_key;

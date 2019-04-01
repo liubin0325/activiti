@@ -45,8 +45,12 @@ public class DemoApplicationTests {
     public void contextLoads() {
 //        identityService.setAuthenticatedUserId("0");
 //        taskService.addComment("57507", "57501", "哈哈哈1");
-        List<Comment> comments = taskService.getProcessInstanceComments("25001");
+        List<Comment> comments = taskService.getProcessInstanceComments("12501");
         System.out.println(gson.toJson(comments));
+
+//        historyService.createHistoricProcessInstanceQuery().processInstanceId("").list()
+
+//        taskService.getTaskComments()
 
 //        ((RuntimeServiceImpl)runtimeService).getCommandExecutor().execute(new TaskJumpCmd("65002", "flow4", null, "jump"));
 //        runtimeService.g
