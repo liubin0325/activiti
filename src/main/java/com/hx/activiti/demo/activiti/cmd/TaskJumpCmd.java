@@ -58,7 +58,7 @@ public class TaskJumpCmd extends NeedsActiveTaskCmd<Void> {
             throw new ActivitiException(this.toTaskKey + " to ActivityImpl is null!");
         } else {
             task.fireEvent("complete");
-            Context.getCommandContext().getTaskEntityManager().deleteTask(task, this.type, false);
+            commandContext.getTaskEntityManager().deleteTask(task, this.type, false);
             execution.removeTask(task);//执行规划的线
             execution.executeActivity(toActivityImpl);
         }

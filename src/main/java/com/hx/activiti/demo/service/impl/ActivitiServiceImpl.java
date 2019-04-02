@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.hx.activiti.demo.activiti.cmd.MultiJumpCmd;
 import com.hx.activiti.demo.activiti.cmd.TaskJumpCmd;
 import com.hx.activiti.demo.dao.ActCustomFormDao;
 import com.hx.activiti.demo.dao.ActCustomFormDataDao;
@@ -17,12 +18,14 @@ import com.hx.activiti.demo.model.ActCustomModelDeployment;
 import com.hx.activiti.demo.model.ActCustomModelForm;
 import com.hx.activiti.demo.model.vo.ActivitiProcessModel;
 import com.hx.activiti.demo.service.ActivitiService;
+import com.hx.activiti.demo.service.ActivitiUserService;
 import com.hx.activiti.demo.util.HxException;
 import org.activiti.bpmn.converter.BpmnXMLConverter;
 import org.activiti.bpmn.model.BpmnModel;
 import org.activiti.editor.constants.ModelDataJsonConstants;
 import org.activiti.editor.language.json.converter.BpmnJsonConverter;
 import org.activiti.engine.*;
+import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.impl.RuntimeServiceImpl;
 import org.activiti.engine.impl.bpmn.behavior.ParallelMultiInstanceBehavior;
@@ -86,6 +89,9 @@ public class ActivitiServiceImpl implements ActivitiService {
 
     @Autowired
     private HistoryService historyService;
+
+    @Autowired
+    private ActivitiUserService activitiUserService;
 
 
     @Override
@@ -207,7 +213,7 @@ public class ActivitiServiceImpl implements ActivitiService {
         Map<String, Object> variables = new HashMap<>();
         variables.put("StartName", userName);
         variables.put("StartId", userId);
-
+        variables.put("userService", activitiUserService);
         formDataDao.save(actCustomFormData);
         identityService.setAuthenticatedUserId(userId);//TODO 发起用户
         ProcessInstance processInstance = runtimeService.startProcessInstanceById(procId, businessKey, variables);
@@ -225,9 +231,9 @@ public class ActivitiServiceImpl implements ActivitiService {
             throw new HxException(-1, "任务为空");
 
         ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
-
+        HistoricProcessInstance processInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(task.getProcessInstanceId()).singleResult();
         taskService.addComment(taskId, execution.getProcessInstanceId(), comments);
-        ActCustomFormData customFormData = formDataDao.getByBusinessKey(execution.getProcessDefinitionId(), execution.getBusinessKey());
+        ActCustomFormData customFormData = formDataDao.getByBusinessKey(execution.getProcessDefinitionId(), processInstance.getBusinessKey());
         if (customFormData == null) {
             throw new HxException(-1, "表单数据不存在");
         } else {
@@ -272,11 +278,34 @@ public class ActivitiServiceImpl implements ActivitiService {
                 taskService.complete(taskId);
                 break;
             case 2:
-                String historyKey = definition.findActivity(hisTask.getTaskDefinitionKey()).getIncomingTransitions().get(0).getSource().getId();
-                ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new TaskJumpCmd(taskId, historyKey, null, "turnback"));
+                List<PvmTransition> pvmTransitions = definition.findActivity(hisTask.getTaskDefinitionKey()).getIncomingTransitions();
+                if (pvmTransitions.size() > 1) {
+                    break;
+                }
+                PvmTransition pvmTransition = pvmTransitions.get(0);
+                PvmActivity pvmActivity = pvmTransition.getSource();
+                if (pvmActivity.getProperty("type").equals("startEvent")) {
+                    throw new HxException("上一节点为开始节点，无法驳回");
+                }
+                if (isMultiInstance(taskId)) {//会签节点处理
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new MultiJumpCmd(taskId, pvmActivity.getId(), "turnback"));
+                } else {
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new TaskJumpCmd(taskId, pvmActivity.getId(), null, "turnback"));
+                }
                 break;
             case 3:
-                ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new TaskJumpCmd(taskId, definition.getInitial().getId(), null, "jump"));
+                List<PvmTransition> pvmTransitions1 = definition.findActivity(hisTask.getTaskDefinitionKey()).getIncomingTransitions();
+                if (pvmTransitions1.size() > 1) {
+                    break;
+                }
+                PvmTransition pvmTransition1 = pvmTransitions1.get(0);
+                PvmActivity pvmActivity1 = pvmTransition1.getSource();
+                if (isMultiInstance(taskId)) {//会签节点处理
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new MultiJumpCmd(taskId, pvmActivity1.getId(), "jump"));
+                } else {
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new TaskJumpCmd(taskId, definition.getInitial().getId(), null, "jump"));
+
+                }
                 break;
             default:
                 break;

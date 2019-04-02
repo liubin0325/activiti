@@ -45,9 +45,10 @@ public class DemoApplicationTests {
     public void contextLoads() {
 //        identityService.setAuthenticatedUserId("0");
 //        taskService.addComment("57507", "57501", "哈哈哈1");
-        List<Comment> comments = taskService.getProcessInstanceComments("12501");
-        System.out.println(gson.toJson(comments));
-
+//        List<Comment> comments = taskService.getProcessInstanceComments("12501");
+//        System.out.println(gson.toJson(comments));
+        List<User> users = identityService.createUserQuery().memberOfGroup("2").list();
+        System.out.println(gson.toJson(users));
 //        historyService.createHistoricProcessInstanceQuery().processInstanceId("").list()
 
 //        taskService.getTaskComments()
