@@ -178,6 +178,8 @@ layui.use(['form', 'table', 'element'], function () {
                     });
                 }
             })
+        }else if(layEvent=='image'){
+            window.open('/activiti/taskImage?id='+data.processInstanceId)
         }
     });
     table.on("tool(modelList)",function (obj) {
