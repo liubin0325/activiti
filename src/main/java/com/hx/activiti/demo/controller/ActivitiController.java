@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,5 +64,22 @@ public class ActivitiController {
                                     @RequestParam(value = "extraData", required = false) String extraData) throws HxException {
         activitiService.checkWorkFlow(taskId, status, comment, data);
         return new HxResponse<>();
+    }
+
+
+    @RequestMapping("taskImage")
+    public void getFlowImgByInstantId(@RequestParam("id") String processInstanceId,
+                                      HttpServletResponse response) throws Exception{
+        InputStream stream = activitiService.getFlowImgByInstantId(processInstanceId);
+        response.setContentType("image/jpeg");//设置输出流内容格式为图片格式
+        response.setCharacterEncoding("utf-8");
+        OutputStream outputStream = response.getOutputStream();
+        byte[] b = new byte[1024];
+        int len;
+        while ((len = stream.read(b, 0, 1024)) != -1) {
+            outputStream.write(b, 0, len);
+        }
+        stream.close();
+        outputStream.close();
     }
 }

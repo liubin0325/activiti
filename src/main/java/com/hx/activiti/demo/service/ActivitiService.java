@@ -2,12 +2,12 @@ package com.hx.activiti.demo.service;
 
 import com.hx.activiti.demo.model.vo.ActivitiProcessModel;
 import com.hx.activiti.demo.util.HxException;
-import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.Model;
 import org.activiti.engine.task.Comment;
 import org.activiti.engine.task.Task;
 
+import java.io.InputStream;
 import java.util.List;
 
 /**
@@ -103,6 +103,13 @@ public interface ActivitiService {
      */
     List<Comment> getTaskComments(String taskId);
 
+    /**
+     * 获取当前流程图片
+     *
+     * @param processInstanceId
+     * @return
+     */
+    InputStream getFlowImgByInstantId(String processInstanceId);
 
 //    List<HistoricProcessInstance>
 
