@@ -47,8 +47,10 @@ public class DemoApplicationTests {
 //        taskService.addComment("57507", "57501", "哈哈哈1");
 //        List<Comment> comments = taskService.getProcessInstanceComments("12501");
 //        System.out.println(gson.toJson(comments));
-        List<User> users = identityService.createUserQuery().memberOfGroup("2").list();
-        System.out.println(gson.toJson(users));
+//        List<User> users = identityService.createUserQuery().memberOfGroup("2").list();
+//        System.out.println(gson.toJson(users));
+//        historyService.createHistoricTaskInstanceQuery().taskDeleteReason()
+        repositoryService.deleteDeployment("25001", false);
 //        historyService.createHistoricProcessInstanceQuery().processInstanceId("").list()
 
 //        taskService.getTaskComments()

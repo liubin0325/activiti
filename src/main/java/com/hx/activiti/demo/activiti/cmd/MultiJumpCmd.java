@@ -1,5 +1,6 @@
 package com.hx.activiti.demo.activiti.cmd;
 
+import com.hx.activiti.demo.activiti.ActivitiConstants;
 import org.activiti.engine.ActivitiException;
 import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.impl.HistoryServiceImpl;
@@ -18,7 +19,7 @@ import org.activiti.engine.task.Task;
 import java.util.List;
 
 /**
- * @description:
+ * @description: 会签节点跳转
  * @author: liubin
  * @date: 2019-04-02
  */
@@ -60,15 +61,13 @@ public class MultiJumpCmd extends NeedsActiveTaskCmd<Void> {
             throw new ActivitiException(this.targetId + " to ActivityImpl is null!");
         taskList.forEach(task -> {
             if (!task.getId().equals(taskId)) {
-                commandContext.getTaskEntityManager().deleteTask((TaskEntity)task, this.type, false);
+                commandContext.getTaskEntityManager().deleteTask((TaskEntity) task, ActivitiConstants.DELETE_REASON_AUTO_BACK, false);
             }
         });
         taskEntity.fireEvent("complete");
         commandContext.getTaskEntityManager().deleteTask(taskEntity, this.type, false);
         execution.removeTask(taskEntity);//执行规划的线
         execution.executeActivity(toActivityImpl);
-
-
         return null;
     }
 }

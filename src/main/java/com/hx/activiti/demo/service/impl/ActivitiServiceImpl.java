@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.hx.activiti.demo.activiti.ActivitiConstants;
 import com.hx.activiti.demo.activiti.cmd.MultiJumpCmd;
 import com.hx.activiti.demo.activiti.cmd.TaskJumpCmd;
 import com.hx.activiti.demo.dao.ActCustomFormDao;
@@ -31,6 +32,7 @@ import org.activiti.engine.impl.RuntimeServiceImpl;
 import org.activiti.engine.impl.bpmn.behavior.ParallelMultiInstanceBehavior;
 import org.activiti.engine.impl.persistence.entity.ExecutionEntity;
 import org.activiti.engine.impl.persistence.entity.ProcessDefinitionEntity;
+import org.activiti.engine.impl.persistence.entity.TaskEntity;
 import org.activiti.engine.impl.pvm.PvmActivity;
 import org.activiti.engine.impl.pvm.PvmTransition;
 import org.activiti.engine.impl.pvm.process.ActivityImpl;
@@ -220,6 +222,8 @@ public class ActivitiServiceImpl implements ActivitiService {
 
         //第一步 默认为用户申请表单 直接跳过
         Task task = taskService.createTaskQuery().processInstanceId(processInstance.getId()).singleResult();
+        TaskEntity taskEntity = (TaskEntity) task;
+
         taskService.complete(task.getId());
     }
 
@@ -274,37 +278,47 @@ public class ActivitiServiceImpl implements ActivitiService {
         //取得流程定义
         ProcessDefinitionEntity definition = (ProcessDefinitionEntity) repositoryService.getProcessDefinition(hisTask.getProcessDefinitionId());
         switch (status) {
-            case 1:
+            case 1://同意
                 taskService.complete(taskId);
                 break;
-            case 2:
+            case 2://退回上一个节点
                 List<PvmTransition> pvmTransitions = definition.findActivity(hisTask.getTaskDefinitionKey()).getIncomingTransitions();
-                if (pvmTransitions.size() > 1) {
-                    break;
-                }
                 PvmTransition pvmTransition = pvmTransitions.get(0);
                 PvmActivity pvmActivity = pvmTransition.getSource();
                 if (pvmActivity.getProperty("type").equals("startEvent")) {
                     throw new HxException("上一节点为开始节点，无法驳回");
                 }
                 if (isMultiInstance(taskId)) {//会签节点处理
-                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new MultiJumpCmd(taskId, pvmActivity.getId(), "turnback"));
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new MultiJumpCmd(taskId, pvmActivity.getId(), ActivitiConstants.DELETE_REASON_TURN_BACK));
                 } else {
-                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new TaskJumpCmd(taskId, pvmActivity.getId(), null, "turnback"));
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new TaskJumpCmd(taskId, pvmActivity.getId(), null, ActivitiConstants.DELETE_REASON_TURN_BACK));
                 }
                 break;
-            case 3:
+            case 3://退回至申请人
                 List<PvmTransition> pvmTransitions1 = definition.findActivity(hisTask.getTaskDefinitionKey()).getIncomingTransitions();
-                if (pvmTransitions1.size() > 1) {
-                    break;
-                }
                 PvmTransition pvmTransition1 = pvmTransitions1.get(0);
                 PvmActivity pvmActivity1 = pvmTransition1.getSource();
                 if (isMultiInstance(taskId)) {//会签节点处理
-                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new MultiJumpCmd(taskId, pvmActivity1.getId(), "jump"));
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new MultiJumpCmd(taskId, pvmActivity1.getId(), ActivitiConstants.DELETE_REASON_JUMP));
                 } else {
-                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new TaskJumpCmd(taskId, definition.getInitial().getId(), null, "jump"));
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new TaskJumpCmd(taskId, definition.getInitial().getId(), null, ActivitiConstants.DELETE_REASON_JUMP));
 
+                }
+                break;
+            case 4://同意---并结束流程
+                List<ActivityImpl> activities = definition.getActivities();
+                ActivityImpl endActiviti = null;
+                endActiviti = activities.stream().filter(activity ->
+                        activity.getProperty("type").equals("endEvent")
+                ).findFirst().get();
+
+                if (endActiviti == null)
+                    throw new HxException("流程定义不完全，无法找到结束节点");
+
+                if (isMultiInstance(taskId)) {//会签节点处理
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new MultiJumpCmd(taskId, endActiviti.getId(), ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
+                } else {
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new TaskJumpCmd(taskId, endActiviti.getId(), null, ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
                 }
                 break;
             default:

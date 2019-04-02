@@ -1,5 +1,7 @@
 package com.hx.activiti.demo.activiti.listener;
 
+import org.activiti.engine.delegate.event.impl.ActivitiEntityEventImpl;
+import org.activiti.engine.impl.persistence.entity.TaskEntity;
 import org.slf4j.Logger;
 import com.hx.activiti.demo.activiti.EventHandler;
 import org.activiti.engine.delegate.event.ActivitiEvent;
@@ -12,11 +14,10 @@ import org.springframework.stereotype.Service;
  * @date: 2019-03-29
  */
 @Service("processCompleteListener")
-public class ProcessCompleteListener implements EventHandler {
+public class ProcessCompleteListener extends AbstractEventHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(ProcessCompleteListener.class);
     @Override
-    public void handle(ActivitiEvent event) {
+    protected void handleEvent(ActivitiEvent event, TaskEntity entity) {
 
     }
 }
