@@ -33,7 +33,6 @@ import org.activiti.engine.impl.RuntimeServiceImpl;
 import org.activiti.engine.impl.bpmn.behavior.ParallelMultiInstanceBehavior;
 import org.activiti.engine.impl.persistence.entity.ExecutionEntity;
 import org.activiti.engine.impl.persistence.entity.ProcessDefinitionEntity;
-import org.activiti.engine.impl.persistence.entity.TaskEntity;
 import org.activiti.engine.impl.pvm.PvmActivity;
 import org.activiti.engine.impl.pvm.PvmTransition;
 import org.activiti.engine.impl.pvm.process.ActivityImpl;
@@ -464,11 +463,15 @@ public class ActivitiServiceImpl implements ActivitiService {
             while (true) {
                 whileCount++;
                 ActivityImpl activity = definition.findActivity(taskDefinitionKey);
-                PvmTransition pvmTransition = activity.getIncomingTransitions().get(0);
-                pvmActivity = pvmTransition.getSource();
-                String type = (String) pvmActivity.getProperty("type");
-                taskDefinitionKey = pvmActivity.getId();
-                if (type.equals("userTask") || whileCount > 5) {
+                if (activity.getIncomingTransitions().size() > 0) {
+                    PvmTransition pvmTransition = activity.getIncomingTransitions().get(0);
+                    pvmActivity = pvmTransition.getSource();
+                    String type = (String) pvmActivity.getProperty("type");
+                    taskDefinitionKey = pvmActivity.getId();
+                    if (type.equals("userTask") || whileCount > 5) {
+                        break;
+                    }
+                } else {
                     break;
                 }
             }
