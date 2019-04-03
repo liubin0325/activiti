@@ -227,8 +227,6 @@ public class ActivitiServiceImpl implements ActivitiService {
 
         //第一步 默认为用户申请表单 直接跳过
         Task task = taskService.createTaskQuery().processInstanceId(processInstance.getId()).singleResult();
-        TaskEntity taskEntity = (TaskEntity) task;
-
         taskService.complete(task.getId());
     }
 
@@ -293,21 +291,29 @@ public class ActivitiServiceImpl implements ActivitiService {
                 if (pvmActivity.getProperty("type").equals("startEvent")) {
                     throw new HxException("上一节点为开始节点，无法驳回");
                 }
+                if (!pvmActivity.getProperty("type").equals("userTask")) {
+                    pvmActivity = getPreUserTask(definition, hisTask.getTaskDefinitionKey());
+                }
+
+                if (pvmActivity == null) {
+                    throw new HxException("无法找到上一节可以驳回的节点");
+                }
+
                 if (isMultiInstance(taskId)) {//会签节点处理
-                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new MultiJumpCmd(taskId, pvmActivity.getId(), ActivitiConstants.DELETE_REASON_TURN_BACK));
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
+                            new MultiJumpCmd(taskId, pvmActivity.getId(), ActivitiConstants.DELETE_REASON_TURN_BACK));
                 } else {
-                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new TaskJumpCmd(taskId, pvmActivity.getId(), null, ActivitiConstants.DELETE_REASON_TURN_BACK));
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
+                            new TaskJumpCmd(taskId, pvmActivity.getId(), null, ActivitiConstants.DELETE_REASON_TURN_BACK));
                 }
                 break;
             case 3://退回至申请人
-                List<PvmTransition> pvmTransitions1 = definition.findActivity(hisTask.getTaskDefinitionKey()).getIncomingTransitions();
-                PvmTransition pvmTransition1 = pvmTransitions1.get(0);
-                PvmActivity pvmActivity1 = pvmTransition1.getSource();
                 if (isMultiInstance(taskId)) {//会签节点处理
-                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new MultiJumpCmd(taskId, pvmActivity1.getId(), ActivitiConstants.DELETE_REASON_JUMP));
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
+                            new MultiJumpCmd(taskId, definition.getInitial().getId(), ActivitiConstants.DELETE_REASON_JUMP));
                 } else {
-                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new TaskJumpCmd(taskId, definition.getInitial().getId(), null, ActivitiConstants.DELETE_REASON_JUMP));
-
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
+                            new TaskJumpCmd(taskId, definition.getInitial().getId(), null, ActivitiConstants.DELETE_REASON_JUMP));
                 }
                 break;
             case 4://同意---并结束流程
@@ -321,9 +327,11 @@ public class ActivitiServiceImpl implements ActivitiService {
                     throw new HxException("流程定义不完全，无法找到结束节点");
 
                 if (isMultiInstance(taskId)) {//会签节点处理
-                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new MultiJumpCmd(taskId, endActiviti.getId(), ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
+                            new MultiJumpCmd(taskId, endActiviti.getId(), ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
                 } else {
-                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new TaskJumpCmd(taskId, endActiviti.getId(), null, ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
+                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
+                            new TaskJumpCmd(taskId, endActiviti.getId(), null, ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
                 }
                 break;
             default:
@@ -413,7 +421,7 @@ public class ActivitiServiceImpl implements ActivitiService {
             // 根据活动id获取活动实例
             ActivityImpl activityImpl = processDefinitionEntity.findActivity(task.getTaskDefinitionKey());
 
-            if (((ActivityImpl) activityImpl).getActivityBehavior() instanceof ParallelMultiInstanceBehavior) {
+            if (activityImpl.getActivityBehavior() instanceof ParallelMultiInstanceBehavior) {
                 ParallelMultiInstanceBehavior behavior = (ParallelMultiInstanceBehavior) activityImpl.getActivityBehavior();
                 if (behavior != null && behavior.getCollectionExpression() != null) {
                     flag = true;
@@ -440,5 +448,33 @@ public class ActivitiServiceImpl implements ActivitiService {
     private JsonArray parseFormData(String formData) {
         JsonParser parser = new JsonParser();
         return parser.parse(formData).getAsJsonArray();
+    }
+
+    /**
+     * 获取之前最近的一个UserTask
+     *
+     * @param definition
+     * @param taskDefinitionKey
+     * @return
+     */
+    private PvmActivity getPreUserTask(ProcessDefinitionEntity definition, String taskDefinitionKey) {
+        int whileCount = 0;
+        PvmActivity pvmActivity = null;
+        try {
+            while (true) {
+                whileCount++;
+                ActivityImpl activity = definition.findActivity(taskDefinitionKey);
+                PvmTransition pvmTransition = activity.getIncomingTransitions().get(0);
+                pvmActivity = pvmTransition.getSource();
+                String type = (String) pvmActivity.getProperty("type");
+                taskDefinitionKey = pvmActivity.getId();
+                if (type.equals("userTask") || whileCount > 5) {
+                    break;
+                }
+            }
+        } catch (Exception ex) {
+
+        }
+        return pvmActivity;
     }
 }
