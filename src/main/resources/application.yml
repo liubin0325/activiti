@@ -7,7 +7,7 @@ security:
 spring:
   datasource:
       driverClassName: com.mysql.jdbc.Driver
-      url: jdbc:mysql://127.0.0.1:3306/activiti_demo?useUnicode=true&amp;characterEncoding=UTF-8&amp;zeroDateTimeBehavior=convertToNull&amp;useSSL=false
+      url: jdbc:mysql://127.0.0.1:3306/activiti?useUnicode=true&amp;characterEncoding=UTF-8&amp;zeroDateTimeBehavior=convertToNull&amp;useSSL=false
       username: root
       password: qweqwe
 #      driverClassName: oracle.jdbc.driver.OracleDriver
@@ -19,7 +19,7 @@ spring:
       # 初始化大小，最小等待连接数量，最大等待连接数量，最大连接数
       initialSize: 1
       minIdle: 1
-      maxIdle: 5
+#      maxIdle: 5
       maxActive: 20
       # 配置获取连接等待超时的时间
       maxWait: 60000

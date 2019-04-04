@@ -7,8 +7,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.hx.activiti.demo.activiti.ActivitiConstants;
-import com.hx.activiti.demo.activiti.cmd.MultiJumpCmd;
-import com.hx.activiti.demo.activiti.cmd.TaskJumpCmd;
+import com.hx.activiti.demo.activiti.cmd.MultiJumpMiddleCmd;
+import com.hx.activiti.demo.activiti.cmd.MultiJumpStartCmd;
+import com.hx.activiti.demo.activiti.cmd.TaskJumpEndCmd;
+import com.hx.activiti.demo.activiti.cmd.TaskJumpStartCmd;
 import com.hx.activiti.demo.dao.ActCustomFormDao;
 import com.hx.activiti.demo.dao.ActCustomFormDataDao;
 import com.hx.activiti.demo.dao.ActCustomModelDeploymentDao;
@@ -31,6 +33,7 @@ import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.impl.RuntimeServiceImpl;
 import org.activiti.engine.impl.bpmn.behavior.ParallelMultiInstanceBehavior;
+import org.activiti.engine.impl.bpmn.behavior.SequentialMultiInstanceBehavior;
 import org.activiti.engine.impl.persistence.entity.ExecutionEntity;
 import org.activiti.engine.impl.persistence.entity.ProcessDefinitionEntity;
 import org.activiti.engine.impl.pvm.PvmActivity;
@@ -167,9 +170,7 @@ public class ActivitiServiceImpl implements ActivitiService {
         if (bytes == null) {
             throw new HxException(-1, "模型为空");
         }
-
         JsonNode modelNode = new ObjectMapper().readTree(bytes);
-
         BpmnModel model = new BpmnJsonConverter().convertToBpmnModel(modelNode);
         if (model.getProcesses().size() == 0) {
             throw new HxException(-1, "数据模型不符要求，请至少设计一条主线流程。");
@@ -293,45 +294,41 @@ public class ActivitiServiceImpl implements ActivitiService {
                 if (!pvmActivity.getProperty("type").equals("userTask")) {
                     pvmActivity = getPreUserTask(definition, hisTask.getTaskDefinitionKey());
                 }
-
                 if (pvmActivity == null) {
                     throw new HxException("无法找到上一节可以驳回的节点");
                 }
-
                 if (isMultiInstance(taskId)) {//会签节点处理
                     ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
-                            new MultiJumpCmd(taskId, pvmActivity.getId(), ActivitiConstants.DELETE_REASON_TURN_BACK));
+                            new MultiJumpMiddleCmd(taskId, pvmActivity.getId(), ActivitiConstants.DELETE_REASON_TURN_BACK));
                 } else {
                     ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
-                            new TaskJumpCmd(taskId, pvmActivity.getId(), null, ActivitiConstants.DELETE_REASON_TURN_BACK));
+                            new TaskJumpStartCmd(taskId, pvmActivity.getId(), ActivitiConstants.DELETE_REASON_TURN_BACK));
                 }
                 break;
             case 3://退回至申请人
+
+                PvmActivity pvmActivity1 = findFirstActivity(definition);
+                if (pvmActivity1 == null) {
+                    throw new HxException("无法找到用户申请的节点");
+                }
                 if (isMultiInstance(taskId)) {//会签节点处理
                     ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
-                            new MultiJumpCmd(taskId, definition.getInitial().getId(), ActivitiConstants.DELETE_REASON_JUMP));
+                            new MultiJumpStartCmd(taskId, pvmActivity1.getId(), ActivitiConstants.DELETE_REASON_JUMP));
                 } else {
                     ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
-                            new TaskJumpCmd(taskId, definition.getInitial().getId(), null, ActivitiConstants.DELETE_REASON_JUMP));
+                            new TaskJumpStartCmd(taskId, pvmActivity1.getId(), ActivitiConstants.DELETE_REASON_JUMP));
                 }
                 break;
             case 4://同意---并结束流程
                 List<ActivityImpl> activities = definition.getActivities();
-                ActivityImpl endActiviti = null;
+                ActivityImpl endActiviti;
                 endActiviti = activities.stream().filter(activity ->
                         activity.getProperty("type").equals("endEvent")
                 ).findFirst().get();
-
                 if (endActiviti == null)
                     throw new HxException("流程定义不完全，无法找到结束节点");
-
-                if (isMultiInstance(taskId)) {//会签节点处理
-                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
-                            new MultiJumpCmd(taskId, endActiviti.getId(), ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
-                } else {
-                    ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
-                            new TaskJumpCmd(taskId, endActiviti.getId(), null, ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
-                }
+                ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
+                        new TaskJumpEndCmd(taskId, endActiviti.getId(), ActivitiConstants.DELETE_REASON_COMPLETE));
                 break;
             default:
                 break;
@@ -425,17 +422,20 @@ public class ActivitiServiceImpl implements ActivitiService {
                 if (behavior != null && behavior.getCollectionExpression() != null) {
                     flag = true;
                 }
+            } else if (activityImpl.getActivityBehavior() instanceof SequentialMultiInstanceBehavior) {
+                SequentialMultiInstanceBehavior behavior = (SequentialMultiInstanceBehavior) activityImpl.getActivityBehavior();
+                if (behavior != null && behavior.getCollectionExpression() != null) {
+                    flag = true;
+                }
             }
         }
 
         return flag;
     }
 
-    private PvmActivity findFirstActivity(String processDefinitionId) {
-        ProcessDefinitionEntity processDefinitionEntity = (ProcessDefinitionEntity)
-                repositoryService
-                        .createProcessDefinitionQuery().processDefinitionId(processDefinitionId).latestVersion().singleResult();
-        ActivityImpl startActivity = processDefinitionEntity.getInitial();
+    private PvmActivity findFirstActivity(ProcessDefinitionEntity definition) {
+
+        ActivityImpl startActivity = definition.getInitial();
         PvmTransition pvmTransition = startActivity.getOutgoingTransitions().get(0);
         PvmActivity targetActivity = pvmTransition.getDestination();
         if (!"userTask".equals(targetActivity.getProperty("type"))) {

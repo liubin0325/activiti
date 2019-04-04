@@ -7,6 +7,7 @@ import org.activiti.engine.*;
 import org.activiti.engine.delegate.event.ActivitiEventListener;
 import org.activiti.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.activiti.engine.impl.form.FormEngine;
+import org.activiti.engine.impl.persistence.StrongUuidGenerator;
 import org.activiti.rest.common.application.ContentTypeResolver;
 import org.activiti.rest.common.application.DefaultContentTypeResolver;
 import org.activiti.rest.service.api.RestResponseFactory;
@@ -38,7 +39,8 @@ public class ActivitiConfig {
         processEngineConfiguration.setActivityFontName("宋体");
         processEngineConfiguration.setAnnotationFontName("宋体");
         processEngineConfiguration.setLabelFontName("宋体");
-
+        //ID 高并发生成策略
+        processEngineConfiguration.setIdGenerator(new StrongUuidGenerator());
         List<ActivitiEventListener> listeners = new ArrayList<>();
         listeners.add(getGlobalEventListener());
         processEngineConfiguration.setEventListeners(listeners);
@@ -122,8 +124,7 @@ public class ActivitiConfig {
      *
      * @return
      */
-    @Bean(name = "globalEventListener")
-    public ActivitiEventListener getGlobalEventListener() {
+    private ActivitiEventListener getGlobalEventListener() {
         GlobalEventListener listener = new GlobalEventListener();
         Map<String, String> handlers = new HashMap<>();
         handlers.put("TASK_CREATED", "taskCreateListener");

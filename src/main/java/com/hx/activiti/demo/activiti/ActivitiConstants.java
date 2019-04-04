@@ -12,6 +12,9 @@ public class ActivitiConstants {
     public static final String DELETE_REASON_JUMP = "jump";
     //节点回退
     public static final String DELETE_REASON_TURN_BACK = "turnback";
+    //同意-强制结束
+    public static final String DELETE_REASON_COMPLETE = "complete";
+
     //强制结束
     public static final String DELETE_REASON_FORCE_COMPLETE = "forcecomplete";
 }
