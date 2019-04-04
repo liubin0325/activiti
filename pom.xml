@@ -24,11 +24,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>org.activiti</groupId>-->
-            <!--<artifactId>activiti-spring-boot-starter-rest-api</artifactId>-->
-            <!--<version>${activiti.version}</version>-->
-         <!--</dependency>-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
@@ -83,14 +78,8 @@
         <dependency>
             <groupId>org.activiti</groupId>
             <artifactId>activiti-rest</artifactId>
-            <version>5.22.0</version>
+            <version>${activiti.version}</version>
         </dependency>
-
-        <!--<dependency>-->
-        <!--<groupId>org.activiti</groupId>-->
-        <!--<artifactId>activiti-rest</artifactId>-->
-        <!--<version>${activiti.version}</version>-->
-        <!--</dependency>-->
 
         <!--activiti end-->
 
@@ -120,7 +109,6 @@
             <artifactId>ojdbc14</artifactId>
             <version>10.2.0.1.0</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.fasterxml.uuid/java-uuid-generator -->
         <!--Actviti ID 高并发生成策略依赖包-->
         <dependency>
             <groupId>com.fasterxml.uuid</groupId>
