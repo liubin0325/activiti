@@ -132,7 +132,7 @@ public class ActivitiServiceImpl implements ActivitiService {
     public String createModel(String name, String desc, String form, String callback) throws HxException {
 
         //验证回调方法
-        ActivitiUtils.getCallbackMethod(callback);
+        Map map = ActivitiUtils.getCallbackMethod(callback);
         try {
             Model model = repositoryService.newModel();
             //设置一些默认信息
@@ -160,6 +160,9 @@ public class ActivitiServiceImpl implements ActivitiService {
             modelForm.setForm(customForm);
             modelForm.setModel_id(id);
             modelFormDao.save(modelForm);
+            if (map != null) {
+                callbackDao.save(new ActCustomModelCallback(id, callback));
+            }
             return id;
         } catch (Exception ex) {
             throw new HxException(-1, "创建模型失败");
@@ -191,7 +194,6 @@ public class ActivitiServiceImpl implements ActivitiService {
         modelDeploymentDao.save(new ActCustomModelDeployment(deployment.getId(), id));
         modelData.setDeploymentId(deployment.getId());
         repositoryService.saveModel(modelData);
-
     }
 
     @Override

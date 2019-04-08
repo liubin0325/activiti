@@ -9,6 +9,14 @@ public class ActCustomModelCallback {
     private String model_id;
     private String callback;
 
+    public ActCustomModelCallback() {
+    }
+
+    public ActCustomModelCallback(String model_id, String callback) {
+        this.model_id = model_id;
+        this.callback = callback;
+    }
+
     public String getModel_id() {
         return model_id;
     }
