@@ -44,7 +44,7 @@ public interface ActivitiService {
      * @return
      * @throws HxException
      */
-    String createModel(String name, String desc, String form) throws HxException;
+    String createModel(String name, String desc, String form, String callback) throws HxException;
 
     /**
      * 部署流程图

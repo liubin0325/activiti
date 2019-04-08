@@ -40,7 +40,7 @@ public class ActivitiConfig {
         processEngineConfiguration.setAnnotationFontName("宋体");
         processEngineConfiguration.setLabelFontName("宋体");
         //ID 高并发生成策略
-        processEngineConfiguration.setIdGenerator(new StrongUuidGenerator());
+//        processEngineConfiguration.setIdGenerator(new StrongUuidGenerator());
         List<ActivitiEventListener> listeners = new ArrayList<>();
         listeners.add(getGlobalEventListener());
         processEngineConfiguration.setEventListeners(listeners);

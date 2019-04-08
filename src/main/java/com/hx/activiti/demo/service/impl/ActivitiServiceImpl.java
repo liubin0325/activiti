@@ -6,19 +6,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.hx.activiti.demo.activiti.ActivitiCallBackBean;
 import com.hx.activiti.demo.activiti.ActivitiConstants;
-import com.hx.activiti.demo.activiti.cmd.MultiJumpMiddleCmd;
-import com.hx.activiti.demo.activiti.cmd.MultiJumpStartCmd;
-import com.hx.activiti.demo.activiti.cmd.TaskJumpEndCmd;
-import com.hx.activiti.demo.activiti.cmd.TaskJumpStartCmd;
-import com.hx.activiti.demo.dao.ActCustomFormDao;
-import com.hx.activiti.demo.dao.ActCustomFormDataDao;
-import com.hx.activiti.demo.dao.ActCustomModelDeploymentDao;
-import com.hx.activiti.demo.dao.ActCustomModelFormDao;
-import com.hx.activiti.demo.model.ActCustomForm;
-import com.hx.activiti.demo.model.ActCustomFormData;
-import com.hx.activiti.demo.model.ActCustomModelDeployment;
-import com.hx.activiti.demo.model.ActCustomModelForm;
+import com.hx.activiti.demo.activiti.ActivitiUtils;
+import com.hx.activiti.demo.activiti.cmd.*;
+import com.hx.activiti.demo.dao.*;
+import com.hx.activiti.demo.model.*;
 import com.hx.activiti.demo.model.vo.ActivitiProcessModel;
 import com.hx.activiti.demo.service.ActivitiService;
 import com.hx.activiti.demo.service.ActivitiUserService;
@@ -48,12 +41,16 @@ import org.activiti.engine.task.Comment;
 import org.activiti.engine.task.Task;
 import org.activiti.image.ProcessDiagramGenerator;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -63,6 +60,9 @@ import java.util.*;
  */
 @Service
 public class ActivitiServiceImpl implements ActivitiService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ActivitiService.class);
+
 
     @Autowired
     private RepositoryService repositoryService;
@@ -102,6 +102,9 @@ public class ActivitiServiceImpl implements ActivitiService {
     @Autowired
     private ProcessEngineConfiguration engineConfiguration;
 
+    @Autowired
+    private ActCustomModelCallbackDao callbackDao;
+
 
     @Override
     public List<Model> getModelList() {
@@ -126,8 +129,10 @@ public class ActivitiServiceImpl implements ActivitiService {
     }
 
     @Override
-    public String createModel(String name, String desc, String form) throws HxException {
+    public String createModel(String name, String desc, String form, String callback) throws HxException {
 
+        //验证回调方法
+        ActivitiUtils.getCallbackMethod(callback);
         try {
             Model model = repositoryService.newModel();
             //设置一些默认信息
@@ -280,9 +285,12 @@ public class ActivitiServiceImpl implements ActivitiService {
                 .singleResult();
         //取得流程定义
         ProcessDefinitionEntity definition = (ProcessDefinitionEntity) repositoryService.getProcessDefinition(hisTask.getProcessDefinitionId());
+        customFormData = formDataDao.getByBusinessKey(execution.getProcessDefinitionId(), processInstance.getBusinessKey());
+
         switch (status) {
             case 1://同意
                 taskService.complete(taskId);
+                callback(execution.getProcessInstanceId(), customFormData);
                 break;
             case 2://退回上一个节点
                 List<PvmTransition> pvmTransitions = definition.findActivity(hisTask.getTaskDefinitionKey()).getIncomingTransitions();
@@ -306,7 +314,6 @@ public class ActivitiServiceImpl implements ActivitiService {
                 }
                 break;
             case 3://退回至申请人
-
                 PvmActivity pvmActivity1 = findFirstActivity(definition);
                 if (pvmActivity1 == null) {
                     throw new HxException("无法找到用户申请的节点");
@@ -322,13 +329,31 @@ public class ActivitiServiceImpl implements ActivitiService {
             case 4://同意---并结束流程
                 List<ActivityImpl> activities = definition.getActivities();
                 ActivityImpl endActiviti;
+
                 endActiviti = activities.stream().filter(activity ->
                         activity.getProperty("type").equals("endEvent")
                 ).findFirst().get();
+
                 if (endActiviti == null)
                     throw new HxException("流程定义不完全，无法找到结束节点");
+
                 ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
                         new TaskJumpEndCmd(taskId, endActiviti.getId(), ActivitiConstants.DELETE_REASON_COMPLETE));
+                callback(execution.getProcessInstanceId(), customFormData);
+                break;
+            case 5://不同意---并强制结束流程
+                List<ActivityImpl> activities1 = definition.getActivities();
+                ActivityImpl endActiviti1;
+
+                endActiviti1 = activities1.stream().filter(activity ->
+                        activity.getProperty("type").equals("endEvent")
+                ).findFirst().get();
+
+                if (endActiviti1 == null)
+                    throw new HxException("流程定义不完全，无法找到结束节点");
+                ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
+                        new TaskJumpEndCmd(taskId, endActiviti1.getId(), ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
+                ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new UpdateHiTaskReasonCommand(execution.getProcessInstanceId(), ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
                 break;
             default:
                 break;
@@ -385,16 +410,54 @@ public class ActivitiServiceImpl implements ActivitiService {
             }
             ProcessDiagramGenerator diagramGenerator = engineConfiguration.getProcessDiagramGenerator();
             List<String> activeActivityIds = new ArrayList<>();
-            List<HistoricTaskInstance> instances = historyService.createHistoricTaskInstanceQuery().processInstanceId(processInstanceId).list();
-//            List<Task> tasks = taskService.createTaskQuery().processInstanceId(processInstanceId).list();
-            for (HistoricTaskInstance instance : instances) {
-                activeActivityIds.add(instance.getTaskDefinitionKey());
+//            List<HistoricTaskInstance> instances = historyService.createHistoricTaskInstanceQuery().processInstanceId(processInstanceId).list();
+            List<Task> tasks = taskService.createTaskQuery().processInstanceId(processInstanceId).list();
+            for (Task task : tasks) {
+                activeActivityIds.add(task.getTaskDefinitionKey());
             }
             inputStream = diagramGenerator.generateDiagram(bpmnModel, "png", activeActivityIds, highLightedFlows, "宋体", "宋体", null, null, 1.0);
         }
         return inputStream;
     }
 
+
+    private void callback(String procinstId, ActCustomFormData formData) {
+        HistoricProcessInstance instance = historyService.createHistoricProcessInstanceQuery().processInstanceId(procinstId).singleResult();
+        if (instance.getEndTime() == null)
+            return;
+        ActCustomModelDeployment modelDeployment = modelDeploymentDao.getByDeployment(instance.getDeploymentId());
+        ActCustomModelCallback modelCallback = callbackDao.getByModel(modelDeployment.getModel_id());
+        if (modelCallback != null) {
+            try {
+                Map<String, Object> methodResult = ActivitiUtils.getCallbackMethod(modelCallback.getCallback());
+                if (methodResult != null) {
+                    Method method = (Method) methodResult.get("method");
+                    Object service = methodResult.get("service");
+                    ActivitiCallBackBean callBackBean = new ActivitiCallBackBean(instance.getId(),
+                            formData.getData(),
+                            formData.getList_data(),
+                            formData.getData_extra(),
+                            instance.getStartUserId(),
+                            Calendar.getInstance().getTime());
+                    try {
+                        method.invoke(service, callBackBean);
+                    } catch (IllegalAccessException e) {
+                        logger.error("invoke method error", e);
+                    } catch (InvocationTargetException e) {
+                        logger.error("invoke method error", e);
+                    }
+
+                } else {
+                    logger.warn(modelCallback.getCallback() + " not found");
+                }
+            } catch (HxException ex) {
+                logger.error("find callback method error", ex);
+            }
+        } else {
+            logger.warn("model " + modelDeployment.getModel_id() + " not found ActCustomModelCallback");
+        }
+
+    }
 
     /**
      * @param taskId 任务节点id

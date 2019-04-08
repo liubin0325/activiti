@@ -49,6 +49,7 @@ public class TaskJumpEndCmd extends NeedsActiveTaskCmd<Void> {
         commandContext.getTaskEntityManager().deleteTask(task, this.type, false);
         execution.removeTask(task);//执行规划的线
         execution.executeActivity(activity);
+
         return null;
     }
 }

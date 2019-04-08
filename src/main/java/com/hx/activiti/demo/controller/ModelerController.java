@@ -29,8 +29,9 @@ public class ModelerController {
     public void createModel(@RequestParam("name") String name,
                             @RequestParam("desc") String desc,
                             @RequestParam("form") String form,
+                            @RequestParam(value = "callback",required = false) String callback,
                             HttpServletResponse response) throws Exception {
-        String id = activitiService.createModel(name, desc, form);
+        String id = activitiService.createModel(name, desc, form, callback);
         response.sendRedirect("/editor?modelId=" + id);
     }
 

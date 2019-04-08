@@ -86,7 +86,7 @@ public class GlobalEventListener implements ActivitiEventListener {
     public void onEvent(ActivitiEvent event) {
         String eventType = event.getType().name();
         //根据事件的类型ID,找到对应的事件处理器
-        logger.info("eventType is ========>" + eventType);
+        logger.debug("eventType is ========>" + eventType);
         String eventHandlerBeanId = handlers.get(eventType);
         if (eventHandlerBeanId != null) {
             EventHandler handler = (EventHandler) SpringUtil.getBean(eventHandlerBeanId);

@@ -28,15 +28,11 @@ public abstract class AbstractEventHandler implements EventHandler {
             return null;
         }
         ActivitiEntityEventImpl eventImpl = (ActivitiEntityEventImpl) event;
-        eventImpl.getProcessInstanceId();
-
         Object entity = eventImpl.getEntity();
-
         if (!(entity instanceof TaskEntity)) {
             return null;
         }
         TaskEntity taskEntity = (TaskEntity) entity;
-        HistoricProcessInstance instance = event.getEngineServices().getHistoryService().createHistoricProcessInstanceQuery().processInstanceId(taskEntity.getProcessInstanceId()).singleResult();
         return taskEntity;
     }
 
