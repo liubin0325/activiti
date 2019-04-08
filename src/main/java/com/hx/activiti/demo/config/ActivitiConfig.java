@@ -7,7 +7,7 @@ import org.activiti.engine.*;
 import org.activiti.engine.delegate.event.ActivitiEventListener;
 import org.activiti.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.activiti.engine.impl.form.FormEngine;
-import org.activiti.engine.impl.persistence.StrongUuidGenerator;
+import org.activiti.engine.impl.history.HistoryLevel;
 import org.activiti.rest.common.application.ContentTypeResolver;
 import org.activiti.rest.common.application.DefaultContentTypeResolver;
 import org.activiti.rest.service.api.RestResponseFactory;
@@ -39,6 +39,13 @@ public class ActivitiConfig {
         processEngineConfiguration.setActivityFontName("宋体");
         processEngineConfiguration.setAnnotationFontName("宋体");
         processEngineConfiguration.setLabelFontName("宋体");
+        /*
+        none：不保存任何的历史数据，因此，在流程执行过程中，这是最高效的。
+        activity：级别高于none，保存流程实例与流程行为，其他数据不保存。
+        audit：除activity级别会保存的数据外，还会保存全部的流程任务及其属性。audit为history的默认值。
+        full：保存历史数据的最高级别，除了会保存audit级别的数据外，还会保存其他全部流程相关的细节数据，包括一些流程参数等
+         */
+//        processEngineConfiguration.setHistoryLevel(HistoryLevel.AUDIT);
         //ID 高并发生成策略
 //        processEngineConfiguration.setIdGenerator(new StrongUuidGenerator());
         List<ActivitiEventListener> listeners = new ArrayList<>();
