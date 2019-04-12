@@ -37,8 +37,9 @@ public class MultiJumpMiddleCmd extends NeedsActiveTaskCmd<Void> {
         ProcessDefinitionImpl processDefinitionImpl = (ProcessDefinitionImpl) repositoryService.getDeployedProcessDefinition(procDefId);
         //获取需要提交的节点
         ActivityImpl toActivityImpl = processDefinitionImpl.findActivity(this.targetId);
-        if (toActivityImpl == null)
+        if (toActivityImpl == null) {
             throw new ActivitiException(this.targetId + " to ActivityImpl is null!");
+        }
 
         ActivityImpl nowActivitiImpl = processDefinitionImpl.findActivity(taskEntity.getTaskDefinitionKey());
         boolean isValid = false;

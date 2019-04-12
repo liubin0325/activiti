@@ -15,6 +15,7 @@ import java.util.Map;
  * User Task 自定义节点属性 解析器
  */
 public class CustomUserTaskJsonConverter extends UserTaskJsonConverter {
+    @Override
     public void convertToJson(BaseElement baseElement,
                               ActivityProcessor processor, BpmnModel model,
                               FlowElementsContainer container, ArrayNode shapesArrayNode,

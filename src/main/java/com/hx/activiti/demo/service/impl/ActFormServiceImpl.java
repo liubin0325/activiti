@@ -10,9 +10,10 @@ import com.hx.activiti.demo.service.ActFormService;
 import com.hx.activiti.demo.util.IDGenerate;
 import com.hx.activiti.demo.util.Md5Tool;
 import org.activiti.engine.RepositoryService;
-import org.activiti.engine.impl.persistence.entity.ProcessDefinitionEntity;
+import org.activiti.engine.RuntimeService;
 import org.activiti.engine.repository.Model;
 import org.activiti.engine.repository.ProcessDefinition;
+import org.activiti.engine.runtime.ProcessInstance;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -40,14 +41,20 @@ public class ActFormServiceImpl implements ActFormService {
     @Autowired
     private ActCustomFormFieldDao formFieldDao;
 
-    @Autowired
-    private ActCustomModelFormDao modelFormDao;
+//    @Autowired
+//    private ActCustomModelFormDao modelFormDao;
 
     @Autowired
-    private ActCustomNodeFormDao nodeFormDao;
+    private ActCustomModelExtraDao modelExtraDao;
+
+    @Autowired
+    private ActCustomFormNodeDao nodeFormDao;
 
     @Autowired
     private RepositoryService repositoryService;
+
+    @Autowired
+    private RuntimeService runtimeService;
 
     @Autowired
     private ActCustomFormDataDao formDataDao;
@@ -212,11 +219,12 @@ public class ActFormServiceImpl implements ActFormService {
     }
 
     @Override
-    public String getTaskForm(String procId, String businessKey, String taskKey) {
-        ProcessDefinition definition = repositoryService.createProcessDefinitionQuery().processDefinitionId(procId).singleResult();
+    public String getTaskForm(String procdefId, String procinstId, String taskKey) {
+        ProcessDefinition definition = repositoryService.getProcessDefinition(procdefId);
+        ProcessInstance instance = runtimeService.createProcessInstanceQuery().processInstanceId(procinstId).singleResult();
         ActCustomModelDeployment modelDeployment = modelDeploymentDao.getByDeployment(definition.getDeploymentId());
         Model model = repositoryService.createModelQuery().modelId(modelDeployment.getModel_id()).singleResult();
-        ActCustomFormData formData = formDataDao.getByBusinessKey(procId, businessKey);
+        ActCustomFormData formData = formDataDao.getByBusinessKey(procinstId, instance.getBusinessKey());
         return getHtml(model.getId(), taskKey, formData);
     }
 
@@ -224,21 +232,21 @@ public class ActFormServiceImpl implements ActFormService {
     private String getHtml(String modelId, String nodeKey, ActCustomFormData formData) {
         //TODO 数据填充 后台完成 or 前台完成？？
         try {
-            ActCustomModelForm modelForm = modelFormDao.getByModelId(modelId);
-            ActCustomForm form = modelForm.getForm();
+            ActCustomModelExtra modelForm = modelExtraDao.getByModel(modelId);
+            ActCustomForm form = modelForm.getCustomForm();
             String html = form.getContent();
             Document doc = Jsoup.parse(html);
             Elements elements = doc.getElementsByAttribute("myplugins");
-            List<ActCustomNodeForm> nodeForms = nodeFormDao.getByModelAndNode(modelId, nodeKey);
-            Map<String, ActCustomNodeForm> nodeFormMap = tranListToMap(nodeForms);
+            List<ActCustomFormNode> nodeForms = nodeFormDao.getByModelAndNode(modelId, nodeKey);
+            Map<String, ActCustomFormNode> nodeFormMap = tranListToMap(nodeForms);
             Map<String,String> formDataMap = getFormDataMap(formData);
             for (int i = 0; i < elements.size(); i++) {
                 Element element = elements.get(i);
                 String type = element.attr("myplugins");
                 String id = element.attr("id");
-                ActCustomNodeForm nodeForm = nodeFormMap.get(id);
+                ActCustomFormNode nodeForm = nodeFormMap.get(id);
                 boolean isvisible = true;//是否可见
-                boolean isedit = false;//是否只读
+                boolean isedit = true;//是否只读
                 boolean isnotnull = false;//是否可为空
                 if (nodeForm != null) {
                     isedit = nodeForm.getIsedit();
@@ -247,60 +255,72 @@ public class ActFormServiceImpl implements ActFormService {
                 }
                 switch (type) {
                     case "text":
-                        if(formDataMap.containsKey(id))
+                        if(formDataMap.containsKey(id)) {
                             element.attr("value", formDataMap.get(id));
-                        else
+                        }else {
                             element.attr("value", "");
-                        if (!isedit) {
+                        }if (!isedit) {
                             element.attr("readonly", "readonly");
                             element.attr("name","");
                         }
-                        if (!isvisible)
+                        if (!isvisible) {
                             hideHtmlNode(element);
+                        }
                         break;
                     case "textarea":
-                        if(formDataMap.containsKey(id))
+                        if(formDataMap.containsKey(id)) {
                             element.html(formDataMap.get(id));
-                        else
+                        }else {
                             element.html("");
+                        }
                         if (!isedit) {
                             element.attr("readonly", "readonly");
                             element.attr("name","");
                         }
-                        if (!isvisible)
+                        if (!isvisible){
                             hideHtmlNode(element);
+                        }
                         break;
                     case "date":
-                        if(formDataMap.containsKey(id))
+                        if(formDataMap.containsKey(id)) {
                             element.attr("value", formDataMap.get(id));
-                        else
+                        }else {
                             element.attr("value", "");
+                        }
                         if (!isedit) {
                             element.attr("readonly", "readonly");
                             element.attr("name","");
                         }
-                        if (!isvisible)
+                        if (!isvisible) {
                             hideHtmlNode(element);
+                        }
                         break;
                     case "radios":
-                        if (!isvisible)
+                        if (!isvisible) {
                             hideHtmlNode(element);
+                        }
                         break;
                     case "checkboxs":
-                        if (!isvisible)
+                        if (!isvisible) {
                             hideHtmlNode(element);
+                        }
                         break;
                     case "select":
-                        if (!isvisible)
+                        if (!isvisible) {
                             hideHtmlNode(element);
+                        }
                         break;
                     case "mylink":
-                        if (!isvisible)
+                        if (!isvisible) {
                             hideHtmlNode(element);
+                        }
                         break;
                     case "macros":
-                        if (!isvisible)
+                        if (!isvisible) {
                             hideHtmlNode(element);
+                        }
+                        break;
+                    default:
                         break;
                 }
             }
@@ -313,8 +333,9 @@ public class ActFormServiceImpl implements ActFormService {
 
     private Map<String, String> getFormDataMap(ActCustomFormData formData) {
         Map<String, String> result = new HashMap<>();
-        if (formData == null || StringUtils.isEmpty(formData.getData()))
+        if (formData == null || StringUtils.isEmpty(formData.getData())) {
             return result;
+        }
 
         String data = formData.getData();
 
@@ -335,12 +356,13 @@ public class ActFormServiceImpl implements ActFormService {
      * @param nodeForms
      * @return
      */
-    private Map<String, ActCustomNodeForm> tranListToMap(List<ActCustomNodeForm> nodeForms) {
-        if (nodeForms == null || nodeForms.isEmpty())
+    private Map<String, ActCustomFormNode> tranListToMap(List<ActCustomFormNode> nodeForms) {
+        if (nodeForms == null || nodeForms.isEmpty()) {
             return new HashMap<>();
+        }
 
-        Map<String, ActCustomNodeForm> result = new HashMap<>();
-        for (ActCustomNodeForm nodeForm : nodeForms) {
+        Map<String, ActCustomFormNode> result = new HashMap<>();
+        for (ActCustomFormNode nodeForm : nodeForms) {
             ActCustomFormField formField = nodeForm.getField();
             if (formField != null) {
                 result.put(formField.getParam_name(), nodeForm);
@@ -356,10 +378,11 @@ public class ActFormServiceImpl implements ActFormService {
      */
     private void hideHtmlNode(Element element) {
         try {
-            boolean isTd = element.parent().tagName().toLowerCase().equals("td");
-            boolean isTr = element.parent().parent().tagName().toLowerCase().equals("tr");
-            if (isTd && isTr)
+            boolean isTd = "td".equals(element.parent().tagName().toLowerCase());
+            boolean isTr = "tr".equals(element.parent().parent().tagName().toLowerCase());
+            if (isTd && isTr) {
                 element.parent().parent().addClass("display_none");//TODO 需前台配合显示隐藏
+            }
         } catch (Exception ex) {
             element.addClass("display_none");
         }

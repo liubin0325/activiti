@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hx.activiti.demo.dao.ActCustomFormListDataDao">
+    <insert id="save">
+        INSERT INTO `act_custom_form_list_data` (
+          `procinst_id`,
+          `business_key`,
+          `list_order`,
+          `list_data`
+        )
+        VALUES
+          (
+            #{procinst_id},
+            #{business_key},
+            #{list_order},
+            #{list_data}
+          ) ;
+    </insert>
+    <insert id="saveBatch">
+        INSERT INTO `act_custom_form_list_data` (
+          `procinst_id`,
+          `business_key`,
+          `list_order`,
+          `list_data`
+        )
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+            #{item.procinst_id},
+            #{item.business_key},
+            #{item.list_order},
+            #{item.list_data}
+            ) ;
+        </foreach>
+    </insert>
+    <select id="getByProc" resultType="com.hx.activiti.demo.model.ActCustomFormListData">
+        SELECT procinst_id,business_key,list_order,list_data from act_custom_form_list_data
+        where procinst_id=#{procinstId} and business_key=#{businessKey}
+        order by list_order
+    </select>
+</mapper>

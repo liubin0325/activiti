@@ -21,12 +21,13 @@ public class ActivitiUtils {
                 throw new HxException(-1, "回调方法不正确");
             }
             Object service = SpringUtil.getBean(callbackArr[0]);
-            if(service==null)
+            if(service==null) {
                 throw new HxException(-1, "无法找到回调类");
+            }
             try {
                 Method method = service.getClass().getMethod(callbackArr[1], ActivitiCallBackBean.class);
 
-                Map<String,Object> map = new HashMap<>();
+                Map<String,Object> map = new HashMap<>(2);
                 map.put("service", service);
                 map.put("method", method);
                 return map;

@@ -42,14 +42,16 @@ public class ActivitiController {
     public HxResponse startWorkflow(@RequestParam("id") String procId,
                                     @RequestParam("data") String data,
                                     @RequestParam(value = "listData", required = false) String listData,
-                                    @RequestParam(value = "extraData", required = false) String extraData){
-        activitiService.startWorkFlow(procId, data, listData, extraData);
+                                    @RequestParam(value = "extraData", required = false) String extraData,
+                                    @RequestParam(value = "inst_key", required = false) String inst_key,
+                                    @RequestParam(value = "keyvalue", required = false) String keyvalue){
+        activitiService.startWorkFlow(procId, data, listData, extraData, inst_key, keyvalue);
         return new HxResponse<>();
     }
 
     @RequestMapping("taskForm")
     public HxResponse<Map> getTaskForm(@RequestParam("id") String taskId) throws Exception {
-        Map<String, Object> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>(2);
         map.put("form", activitiService.getTaskFormData(taskId));
         map.put("comments", activitiService.getTaskComments(taskId));
         return new HxResponse<>(map);

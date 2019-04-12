@@ -3,11 +3,11 @@ package com.hx.activiti.demo.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hx.activiti.demo.activiti.GlobalEventListener;
 import com.hx.activiti.demo.activiti.HxFormEngine;
+import com.hx.activiti.demo.service.impl.ActivitiExpressServiceImpl;
 import org.activiti.engine.*;
 import org.activiti.engine.delegate.event.ActivitiEventListener;
 import org.activiti.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.activiti.engine.impl.form.FormEngine;
-import org.activiti.engine.impl.history.HistoryLevel;
 import org.activiti.rest.common.application.ContentTypeResolver;
 import org.activiti.rest.common.application.DefaultContentTypeResolver;
 import org.activiti.rest.service.api.RestResponseFactory;
@@ -39,6 +39,9 @@ public class ActivitiConfig {
         processEngineConfiguration.setActivityFontName("宋体");
         processEngineConfiguration.setAnnotationFontName("宋体");
         processEngineConfiguration.setLabelFontName("宋体");
+        Map<Object, Object> beans = new HashMap<>(1);
+        beans.put("express", new ActivitiExpressServiceImpl());
+        processEngineConfiguration.setBeans(beans);
         /*
         none：不保存任何的历史数据，因此，在流程执行过程中，这是最高效的。
         activity：级别高于none，保存流程实例与流程行为，其他数据不保存。
@@ -126,6 +129,7 @@ public class ActivitiConfig {
         return new DefaultContentTypeResolver();
     }
 
+
     /**
      * 全局事件监听配置
      *
@@ -133,7 +137,7 @@ public class ActivitiConfig {
      */
     private ActivitiEventListener getGlobalEventListener() {
         GlobalEventListener listener = new GlobalEventListener();
-        Map<String, String> handlers = new HashMap<>();
+        Map<String, String> handlers = new HashMap<>(4);
         handlers.put("TASK_CREATED", "taskCreateListener");
         handlers.put("TASK_COMPLETED", "taskCompleteListener");
         handlers.put("TASK_ASSIGNED", "taskAssignedListener");

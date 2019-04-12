@@ -11,6 +11,10 @@ import java.util.List;
  */
 public interface ActFormService {
 
+    /**
+     * 获取表单列表
+     * @return
+     */
     List<ActCustomForm> getList();
 
     /**
@@ -58,14 +62,12 @@ public interface ActFormService {
     /**
      * 获取任务节点表单 包含数据 TODO 如何适配各种类型控件
      *
-     * @param procId
-     * @param businessKey
+     * @param procdefId
+     * @param procinstId
      * @param taskKey
      * @return
      */
-    String getTaskForm(String procId, String businessKey, String taskKey);
-
-
+    String getTaskForm(String procdefId, String procinstId, String taskKey);
 
 
 }

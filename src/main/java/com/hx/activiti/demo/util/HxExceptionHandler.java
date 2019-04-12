@@ -30,8 +30,9 @@ public class HxExceptionHandler {
     public HxResponse handleUnexpectedServerError(Throwable throwable) {
         // 打印日志
         if (throwable instanceof HxException) {
-            if (((HxException) throwable).getCode() != 1000)
+            if (((HxException) throwable).getCode() != 1000) {
                 LOGGER.warn("IyyException|message:{}", throwable.getMessage());
+            }
         } else {
             LOGGER.error("exception", throwable);
         }

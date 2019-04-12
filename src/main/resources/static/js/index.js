@@ -275,7 +275,11 @@ function checkWorkFlow(){
 
 
 
-
+function saveForm(){
+    var vContent = UE.getEditor('editor').getContent();
+    var formData = parse_form(vContent);
+    console.log(formData);
+}
 
 
 

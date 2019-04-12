@@ -3,21 +3,21 @@
 <mapper namespace="com.hx.activiti.demo.dao.ActCustomFormDataDao">
     <insert id="save">
         INSERT INTO `act_custom_form_data` (
-          `procdef_id`,
+          `procinst_id`,
           `business_key`,
           `form_id`,
           `data`,
-          `list_data`,
-          `data_extra`
+          `data_extra`,
+          `list_count`
         )
         VALUES
           (
-            #{procdef_id},
+            #{procinst_id},
             #{business_key},
             #{form_id},
             #{data},
-            #{list_data},
-            #{data_extra}
+            #{data_extra},
+            #{list_count}
           ) ;
     </insert>
     <insert id="saveBatch"></insert>
@@ -27,17 +27,20 @@
             <if test="data!=null">
                 `data`=#{data},
             </if>
-            <if test="list_data!=null">
-                list_data=#{list_data},
-            </if>
             <if test="data_extra!=null">
                 data_extra=#{data_extra},
             </if>
+            <if test="list_count!=null">
+                list_count=#{list_count},
+            </if>
         </trim>
-        where procdef_id=#{procdef_id} and business_key=#{business_key}
+        where procinst_id=#{procinst_id} and business_key=#{business_key}
     </update>
+    <sql id="BaseColumn">
+        procinst_id,business_key,form_id,`data`,data_extra,list_count
+    </sql>
     <select id="getByBusinessKey" resultType="com.hx.activiti.demo.model.ActCustomFormData">
-        SELECT * FROM act_custom_form_data
-        where procdef_id=#{procdef_id} and business_key=#{businessKey}
+        SELECT <include refid="BaseColumn"/> FROM act_custom_form_data
+        where procinst_id=#{procinst_id} and business_key=#{businessKey}
     </select>
 </mapper>

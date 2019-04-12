@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hx.activiti.demo.dao.ActCustomModelExtraDao">
+    <resultMap id="BaseMap" type="com.hx.activiti.demo.model.ActCustomModelExtra">
+        <id column="model_id" property="model_id"/>
+        <result column="callback" property="callback"/>
+        <association property="customForm" column="form_id"
+                     select="com.hx.activiti.demo.dao.ActCustomFormDao.getById"/>
+    </resultMap>
+    <insert id="save">
+        INSERT INTO `act_custom_model_extra` (`model_id`, `form_id`, `callback`)
+        VALUES
+        (#{model_id}, #{customForm.form_id}, #{callback}) ;
+    </insert>
+    <update id="update">
+        update act_custom_model_extra
+        set form_id=#{customForm.form_id}, callback=#{callback}
+        where model_id=#{model_id}
+    </update>
+    <sql id="BaseColumn">
+        `model_id`, `form_id`, `callback`
+    </sql>
+    <select id="getByModel" resultMap="BaseMap">
+        SELECT <include refid="BaseColumn"/>
+        from act_custom_model_extra
+        where model_id=#{model}
+    </select>
+</mapper>

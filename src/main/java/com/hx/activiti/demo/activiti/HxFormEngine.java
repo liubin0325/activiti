@@ -48,7 +48,6 @@ public class HxFormEngine implements FormEngine {
         ActFormService actFormService = SpringUtil.getBean(ActFormService.class);
         ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(taskFormData.getTask().getExecutionId()).singleResult();
         Task task = taskFormData.getTask();
-        task.getTaskDefinitionKey();
-        return actFormService.getTaskForm(execution.getProcessDefinitionId(), execution.getBusinessKey(), task.getTaskDefinitionKey());
+        return actFormService.getTaskForm(execution.getProcessDefinitionId(), execution.getProcessInstanceId(), task.getTaskDefinitionKey());
     }
 }

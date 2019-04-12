@@ -36,8 +36,9 @@ public class TaskJumpEndCmd extends NeedsActiveTaskCmd<Void> {
         //获取流程定义的所有节点
         ProcessDefinitionImpl processDefinitionImpl = (ProcessDefinitionImpl) repositoryService.getDeployedProcessDefinition(procDefId);
         ActivityImpl activity = processDefinitionImpl.findActivity(this.targetId);
-        if (activity == null)
+        if (activity == null) {
             throw new ActivitiException(this.targetId + " not found");
+        }
         while (execution.getParent() != null) {
             execution = execution.getParent();
         }

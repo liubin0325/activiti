@@ -76,12 +76,15 @@
         Delete From act_custom_form_field
         where form_id=#{formId}
     </delete>
+    <sql id="BaseColumn">
+        field_id,form_id,param_name,param_namechn,datadefault,datatype,text_size,text_rows,datavalue,content,myplugins,order_id,islist
+    </sql>
     <select id="getByForm" resultType="com.hx.activiti.demo.model.ActCustomFormField">
-        SELECT * FROM act_custom_form_detail
+        SELECT <include refid="BaseColumn"/> FROM act_custom_form_field
         where form_id=#{formId}
     </select>
     <select id="getById" resultType="com.hx.activiti.demo.model.ActCustomFormField">
-        SELECT * FROM act_custom_form_field
+        SELECT <include refid="BaseColumn"/> FROM act_custom_form_field
         where field_id=#{fieldId}
     </select>
 </mapper>

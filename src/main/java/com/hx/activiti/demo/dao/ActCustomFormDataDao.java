@@ -13,11 +13,11 @@ import java.util.List;
 public interface ActCustomFormDataDao {
     /**
      * 根据任务key 获取表单所有数据
-     * @param procdef_id
+     * @param procinst_id
      * @param businessKey
      * @return
      */
-    ActCustomFormData getByBusinessKey(@Param("procdef_id") String procdef_id, @Param("businessKey") String businessKey);
+    ActCustomFormData getByBusinessKey(@Param("procinst_id") String procinst_id, @Param("businessKey") String businessKey);
 
     /**
      * 修改表单数据

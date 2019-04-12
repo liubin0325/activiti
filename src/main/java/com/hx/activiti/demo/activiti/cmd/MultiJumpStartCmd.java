@@ -39,8 +39,9 @@ public class MultiJumpStartCmd extends NeedsActiveTaskCmd<Void> {
         ProcessDefinitionImpl processDefinitionImpl = (ProcessDefinitionImpl) repositoryService.getDeployedProcessDefinition(procDefId);
         //获取需要提交的节点
         ActivityImpl toActivityImpl = processDefinitionImpl.findActivity(this.targetId);
-        if (toActivityImpl == null)
+        if (toActivityImpl == null) {
             throw new ActivitiException(this.targetId + " to ActivityImpl is null!");
+        }
         taskEntity.fireEvent("complete");
         commandContext.getTaskEntityManager().deleteTask(taskEntity, this.type, false);
         execution.removeTask(taskEntity);//执行规划的线

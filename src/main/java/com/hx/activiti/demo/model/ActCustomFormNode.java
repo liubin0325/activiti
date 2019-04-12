@@ -3,7 +3,7 @@ package com.hx.activiti.demo.model;
 /**
  * 表单字段与各个节点关系表
  */
-public class ActCustomNodeForm {
+public class ActCustomFormNode {
     private ActCustomFormField field;
     private String model_id;
     private String node_key;

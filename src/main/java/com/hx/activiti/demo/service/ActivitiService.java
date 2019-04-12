@@ -72,9 +72,6 @@ public interface ActivitiService {
      */
     Object getTaskFormData(String taskId) throws Exception;
 
-    @Deprecated
-    List<Task> getTaskList();
-
     /**
      * 启动流程 TODO 返回内容
      *
@@ -83,7 +80,7 @@ public interface ActivitiService {
      * @param listData  list表单内容
      * @param extraData 扩展数据
      */
-    void startWorkFlow(String procId, String formData, String listData, String extraData);
+    void startWorkFlow(String procId, String formData, String listData, String extraData, String inst_key, String keyvalue);
 
 
     /**
@@ -110,7 +107,5 @@ public interface ActivitiService {
      * @return
      */
     InputStream getFlowImgByInstantId(String processInstanceId);
-
-//    List<HistoricProcessInstance>
 
 }

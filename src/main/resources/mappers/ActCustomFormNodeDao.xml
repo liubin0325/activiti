@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
-<mapper namespace="com.hx.activiti.demo.dao.ActCustomNodeFormDao">
-    <resultMap id="BaseMap" type="com.hx.activiti.demo.model.ActCustomNodeForm">
+<mapper namespace="com.hx.activiti.demo.dao.ActCustomFormNodeDao">
+    <resultMap id="BaseMap" type="com.hx.activiti.demo.model.ActCustomFormNode">
         <result property="model_id" column="model_id"/>
         <result property="node_key" column="node_key"/>
         <result property="isedit" column="isedit"/>
@@ -11,7 +11,7 @@
                      select="com.hx.activiti.demo.dao.ActCustomFormFieldDao.getById"/>
     </resultMap>
     <select id="getByModelAndNode" resultMap="BaseMap">
-        SELECT * FROM act_custom_node_form
+        SELECT * FROM act_custom_form_node
         where model_id = #{model} and node_key=#{node}
     </select>
 </mapper>

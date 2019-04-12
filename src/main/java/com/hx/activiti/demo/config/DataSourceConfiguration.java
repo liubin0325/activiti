@@ -39,7 +39,7 @@ public class DataSourceConfiguration {
         ServletRegistrationBean servletRegistrationBean = new ServletRegistrationBean();
         servletRegistrationBean.setServlet(new StatViewServlet());
         servletRegistrationBean.addUrlMappings("/druid/*");
-        Map<String, String> initParameters = new HashMap<>();
+        Map<String, String> initParameters = new HashMap<>(4);
         initParameters.put("loginUsername", userName);// 用户名
         initParameters.put("loginPassword", password);// 密码
         initParameters.put("resetEnable", "false");// 禁用HTML页面上的“Reset All”功能

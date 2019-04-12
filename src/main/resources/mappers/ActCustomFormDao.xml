@@ -23,11 +23,14 @@
         </trim>
         where form_id=#{form_id}
     </update>
+    <sql id="BaseColumn">
+        form_id,form_name,form_type,order_id,content,remark,operator,operatedate
+    </sql>
     <select id="getById" resultType="com.hx.activiti.demo.model.ActCustomForm">
-        select * from act_custom_form
+        select <include refid="BaseColumn"/> from act_custom_form
         where form_id=#{id}
     </select>
     <select id="getList" resultType="com.hx.activiti.demo.model.ActCustomForm">
-        select * from act_custom_form
+        select <include refid="BaseColumn"/> from act_custom_form
     </select>
 </mapper>

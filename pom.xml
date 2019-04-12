@@ -116,6 +116,15 @@
             <version>3.1.0</version>
         </dependency>
 
+
+        <!-- https://mvnrepository.com/artifact/com.gitee.qdbp.thirdparty/ueditor -->
+        <dependency>
+            <groupId>com.gitee.qdbp.thirdparty</groupId>
+            <artifactId>ueditor</artifactId>
+            <version>1.4.3.3</version>
+        </dependency>
+
+
     </dependencies>
 
     <build>

@@ -13,8 +13,8 @@ import com.hx.activiti.demo.activiti.cmd.*;
 import com.hx.activiti.demo.dao.*;
 import com.hx.activiti.demo.model.*;
 import com.hx.activiti.demo.model.vo.ActivitiProcessModel;
+import com.hx.activiti.demo.service.ActivitiExpressService;
 import com.hx.activiti.demo.service.ActivitiService;
-import com.hx.activiti.demo.service.ActivitiUserService;
 import com.hx.activiti.demo.util.HxException;
 import org.activiti.bpmn.converter.BpmnXMLConverter;
 import org.activiti.bpmn.model.BpmnModel;
@@ -49,7 +49,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -71,7 +70,7 @@ public class ActivitiServiceImpl implements ActivitiService {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private ActCustomModelFormDao modelFormDao;
+    private ActCustomFormFieldDao formFieldDao;
 
     @Autowired
     private ActCustomFormDao formDao;
@@ -98,12 +97,16 @@ public class ActivitiServiceImpl implements ActivitiService {
     private HistoryService historyService;
 
     @Autowired
-    private ActivitiUserService activitiUserService;
-    @Autowired
     private ProcessEngineConfiguration engineConfiguration;
 
     @Autowired
-    private ActCustomModelCallbackDao callbackDao;
+    private ActCustomFormListDataDao listDataDao;
+
+    @Autowired
+    private ActCustomProcinstExtraDao extraDao;
+
+    @Autowired
+    private ActCustomModelExtraDao modelExtraDao;
 
 
     @Override
@@ -143,6 +146,7 @@ public class ActivitiServiceImpl implements ActivitiService {
             modelNode.put(ModelDataJsonConstants.MODEL_REVISION, 1);
             model.setName(name);
             model.setKey(key);
+            model.setCategory("测试分类");
             model.setMetaInfo(modelNode.toString());
             repositoryService.saveModel(model);
             String id = model.getId();
@@ -153,16 +157,16 @@ public class ActivitiServiceImpl implements ActivitiService {
             ObjectNode stencilSetNode = objectMapper.createObjectNode();
             stencilSetNode.put("namespace",
                     "http://b3mn.org/stencilset/bpmn2.0#");
-            editorNode.put("stencilset", stencilSetNode);
+            editorNode.set("stencilset", stencilSetNode);
             repositoryService.addModelEditorSource(id, editorNode.toString().getBytes("utf-8"));
             ActCustomForm customForm = formDao.getById(form);
-            ActCustomModelForm modelForm = new ActCustomModelForm();
-            modelForm.setForm(customForm);
-            modelForm.setModel_id(id);
-            modelFormDao.save(modelForm);
+            ActCustomModelExtra modelExtra = new ActCustomModelExtra();
+            modelExtra.setCustomForm(customForm);
+            modelExtra.setModel_id(id);
             if (map != null) {
-                callbackDao.save(new ActCustomModelCallback(id, callback));
+                modelExtra.setCallback(callback);
             }
+            modelExtraDao.save(modelExtra);
             return id;
         } catch (Exception ex) {
             throw new HxException(-1, "创建模型失败");
@@ -180,6 +184,7 @@ public class ActivitiServiceImpl implements ActivitiService {
         }
         JsonNode modelNode = new ObjectMapper().readTree(bytes);
         BpmnModel model = new BpmnJsonConverter().convertToBpmnModel(modelNode);
+
         if (model.getProcesses().size() == 0) {
             throw new HxException(-1, "数据模型不符要求，请至少设计一条主线流程。");
         }
@@ -189,6 +194,7 @@ public class ActivitiServiceImpl implements ActivitiService {
         String processName = modelData.getName() + ".bpmn20.xml";
         DeploymentBuilder builder = repositoryService.createDeployment();
         builder.name(modelData.getName());
+        builder.category(modelData.getCategory());
         builder.addString(processName, new String(bpmnBytes, "UTF-8"));
         Deployment deployment = builder.deploy();
         modelDeploymentDao.save(new ActCustomModelDeployment(deployment.getId(), id));
@@ -207,47 +213,60 @@ public class ActivitiServiceImpl implements ActivitiService {
     }
 
     @Override
-    public List<Task> getTaskList() {
-        return taskService.createTaskQuery().list();
-    }
-
-    @Override
     @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRES_NEW)
-    public void startWorkFlow(String procId, String formData, String listData, String extraData) {
+    public void startWorkFlow(String procId, String formData, String listData, String extraData, String instKey, String keyvalue) {
         String businessKey = UUID.randomUUID().toString();
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(procId).latestVersion().singleResult();
         ProcessDefinitionEntity definitionEntity = (ProcessDefinitionEntity) processDefinition;
         Model model = repositoryService.createModelQuery().deploymentId(definitionEntity.getDeploymentId()).latestVersion().singleResult();
         String modelId = model.getId();
-        ActCustomModelForm modelForm = modelFormDao.getByModelId(modelId);
-        ActCustomForm form = modelForm.getForm();
-        ActCustomFormData actCustomFormData = new ActCustomFormData(procId, businessKey, form.getForm_id(), formData, listData, extraData);
+        ActCustomModelExtra modelForm = modelExtraDao.getByModel(modelId);
+        ActCustomForm form = modelForm.getCustomForm();
         String userId = "0";
         String userName = "用户_0";
-        Map<String, Object> variables = new HashMap<>();
+        Map<String, Object> variables = new HashMap<>(2);
         variables.put("StartName", userName);
         variables.put("StartId", userId);
-        variables.put("userService", activitiUserService);
-        formDataDao.save(actCustomFormData);
-        identityService.setAuthenticatedUserId(userId);//TODO 发起用户
+        //TODO 判断inst_key是否重复提交
+        ActCustomProcinstExtra extra = new ActCustomProcinstExtra();
+        extra.setApply_user(userId);
+        extra.setBusiness_key(businessKey);
+        extra.setApply_time(new Date());
+        extra.setModel_id(modelId);
+        identityService.setAuthenticatedUserId(userId);
         ProcessInstance processInstance = runtimeService.startProcessInstanceById(procId, businessKey, variables);
-
-        //第一步 默认为用户申请表单 直接跳过
-        Task task = taskService.createTaskQuery().processInstanceId(processInstance.getId()).singleResult();
-        taskService.complete(task.getId());
+        extra.setKeyvalue(keyvalue);
+        extra.setInst_key(instKey);
+        extra.setProcinst_id(processInstance.getId());
+        extra.setDept_id("");
+        List<ActCustomFormField> fields = formFieldDao.getByForm(form.getForm_id());
+        extra.setProc_content(formDataToString(formData, fields));
+        extraDao.save(extra);
+        ActCustomFormData actCustomFormData = new ActCustomFormData(processInstance.getId(), businessKey, form.getForm_id(), formData, extraData, 0);
+        formDataDao.save(actCustomFormData);
+        /**
+         * 判断是否是用户申请步骤，是则直接完成该任务
+         */
+        if (taskService.createTaskQuery().processInstanceId(processInstance.getId()).count() == 1) {
+            Task task = taskService.createTaskQuery().processInstanceId(processInstance.getId()).singleResult();
+            if (task != null && userId.equals(task.getAssignee())) {
+                taskService.complete(task.getId());
+            }
+        }
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRES_NEW)
     public void checkWorkFlow(String taskId, Integer status, String comments, String formData) throws HxException {
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
-        if (task == null)
+        if (task == null) {
             throw new HxException(-1, "任务为空");
+        }
 
         ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
         HistoricProcessInstance processInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(task.getProcessInstanceId()).singleResult();
         taskService.addComment(taskId, execution.getProcessInstanceId(), comments);
-        ActCustomFormData customFormData = formDataDao.getByBusinessKey(execution.getProcessDefinitionId(), processInstance.getBusinessKey());
+        ActCustomFormData customFormData = formDataDao.getByBusinessKey(execution.getProcessInstanceId(), processInstance.getBusinessKey());
         if (customFormData == null) {
             throw new HxException(-1, "表单数据不存在");
         } else {
@@ -278,7 +297,7 @@ public class ActivitiServiceImpl implements ActivitiService {
                 if (array.size() > 0) {
                     oldData.addAll(array);
                 }
-                formDataDao.update(new ActCustomFormData(customFormData.getProcdef_id(), customFormData.getBusiness_key(), oldData.toString()));
+                formDataDao.update(new ActCustomFormData(customFormData.getProcinst_id(), customFormData.getBusiness_key(), oldData.toString()));
             }
         }
         //取得流程定义
@@ -287,21 +306,25 @@ public class ActivitiServiceImpl implements ActivitiService {
                 .singleResult();
         //取得流程定义
         ProcessDefinitionEntity definition = (ProcessDefinitionEntity) repositoryService.getProcessDefinition(hisTask.getProcessDefinitionId());
-        customFormData = formDataDao.getByBusinessKey(execution.getProcessDefinitionId(), processInstance.getBusinessKey());
+        customFormData = formDataDao.getByBusinessKey(execution.getProcessInstanceId(), processInstance.getBusinessKey());
 
+        ActCustomProcinstExtra extra = extraDao.getByBusinessKey(execution.getProcessInstanceId(), processInstance.getBusinessKey());
+
+        int callbackStatus = 0;
         switch (status) {
             case 1://同意
                 taskService.complete(taskId);
-                callback(execution.getProcessInstanceId(), customFormData);
+                updateComleteReason(execution.getProcessInstanceId(), ActivitiConstants.DELETE_REASON_COMPLETE);
+                callbackStatus = callback(execution.getProcessInstanceId(), customFormData);
                 break;
             case 2://退回上一个节点
                 List<PvmTransition> pvmTransitions = definition.findActivity(hisTask.getTaskDefinitionKey()).getIncomingTransitions();
                 PvmTransition pvmTransition = pvmTransitions.get(0);
                 PvmActivity pvmActivity = pvmTransition.getSource();
-                if (pvmActivity.getProperty("type").equals("startEvent")) {
+                if ("startEvent".equals(pvmActivity.getProperty("type"))) {
                     throw new HxException("上一节点为开始节点，无法驳回");
                 }
-                if (!pvmActivity.getProperty("type").equals("userTask")) {
+                if (!"userTask".equals(pvmActivity.getProperty("type"))) {
                     pvmActivity = getPreUserTask(definition, hisTask.getTaskDefinitionKey());
                 }
                 if (pvmActivity == null) {
@@ -333,33 +356,42 @@ public class ActivitiServiceImpl implements ActivitiService {
                 ActivityImpl endActiviti;
 
                 endActiviti = activities.stream().filter(activity ->
-                        activity.getProperty("type").equals("endEvent")
+                        "endEvent".equals(activity.getProperty("type"))
                 ).findFirst().get();
 
-                if (endActiviti == null)
+                if (endActiviti == null) {
                     throw new HxException("流程定义不完全，无法找到结束节点");
-
+                }
                 ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
                         new TaskJumpEndCmd(taskId, endActiviti.getId(), ActivitiConstants.DELETE_REASON_COMPLETE));
-                callback(execution.getProcessInstanceId(), customFormData);
+                updateComleteReason(execution.getProcessInstanceId(), ActivitiConstants.DELETE_REASON_COMPLETE);
+                callbackStatus = callback(execution.getProcessInstanceId(), customFormData);
                 break;
             case 5://不同意---并强制结束流程
                 List<ActivityImpl> activities1 = definition.getActivities();
                 ActivityImpl endActiviti1;
 
                 endActiviti1 = activities1.stream().filter(activity ->
-                        activity.getProperty("type").equals("endEvent")
+                        "endEvent".equals(activity.getProperty("type"))
                 ).findFirst().get();
 
-                if (endActiviti1 == null)
+                if (endActiviti1 == null) {
                     throw new HxException("流程定义不完全，无法找到结束节点");
+                }
                 ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(
                         new TaskJumpEndCmd(taskId, endActiviti1.getId(), ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
-                ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new UpdateHiTaskReasonCommand(execution.getProcessInstanceId(), ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
+                ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new UpdateHisProcessInstanceReasonCommand(execution.getProcessInstanceId(), ActivitiConstants.DELETE_REASON_FORCE_COMPLETE));
+                callbackStatus = 2;
                 break;
             default:
                 break;
         }
+        hisTask = historyService.createHistoricTaskInstanceQuery().taskId(taskId).singleResult();
+        extra.setStatus(callbackStatus);
+        extra.setPre_task_user(hisTask.getAssignee());
+        extra.setPre_task_time(hisTask.getEndTime());
+        extraDao.update(extra);
+
     }
 
     @Override
@@ -412,7 +444,6 @@ public class ActivitiServiceImpl implements ActivitiService {
             }
             ProcessDiagramGenerator diagramGenerator = engineConfiguration.getProcessDiagramGenerator();
             List<String> activeActivityIds = new ArrayList<>();
-//            List<HistoricTaskInstance> instances = historyService.createHistoricTaskInstanceQuery().processInstanceId(processInstanceId).list();
             List<Task> tasks = taskService.createTaskQuery().processInstanceId(processInstanceId).list();
             for (Task task : tasks) {
                 activeActivityIds.add(task.getTaskDefinitionKey());
@@ -422,42 +453,73 @@ public class ActivitiServiceImpl implements ActivitiService {
         return inputStream;
     }
 
-
-    private void callback(String procinstId, ActCustomFormData formData) {
+    /**
+     * 更新实例完成状态
+     *
+     * @param procinstId
+     * @param reason
+     */
+    private void updateComleteReason(String procinstId, String reason) {
         HistoricProcessInstance instance = historyService.createHistoricProcessInstanceQuery().processInstanceId(procinstId).singleResult();
-        if (instance.getEndTime() == null)
+        if (instance.getEndTime() == null) {
             return;
+        }
+        ((RuntimeServiceImpl) runtimeService).getCommandExecutor().execute(new UpdateHisProcessInstanceReasonCommand(procinstId, reason));
+
+
+    }
+
+    private int callback(String procInstId, ActCustomFormData formData) {
+        HistoricProcessInstance instance = historyService.createHistoricProcessInstanceQuery().processInstanceId(procInstId).singleResult();
+        if (instance.getEndTime() == null) {
+            return 0;
+        }
+        int status = 1;
         ActCustomModelDeployment modelDeployment = modelDeploymentDao.getByDeployment(instance.getDeploymentId());
-        ActCustomModelCallback modelCallback = callbackDao.getByModel(modelDeployment.getModel_id());
-        if (modelCallback != null) {
+        ActCustomModelExtra modelExtra = modelExtraDao.getByModel(modelDeployment.getModel_id());
+        List<ActCustomFormListData> listDatas = listDataDao.getByProc(procInstId, formData.getBusiness_key());
+        String listData = null;
+        if (listDatas != null && !listDatas.isEmpty()) {
+            JsonArray array = new JsonArray();
+            JsonParser parser = new JsonParser();
+            for (ActCustomFormListData data : listDatas) {
+                String strData = data.getList_data();
+                array.add(parser.parse(strData));
+            }
+            listData = array.toString();
+        }
+        if (modelExtra != null && StringUtils.isNotEmpty(modelExtra.getCallback())) {
             try {
-                Map<String, Object> methodResult = ActivitiUtils.getCallbackMethod(modelCallback.getCallback());
+                Map<String, Object> methodResult = ActivitiUtils.getCallbackMethod(modelExtra.getCallback());
                 if (methodResult != null) {
                     Method method = (Method) methodResult.get("method");
                     Object service = methodResult.get("service");
                     ActivitiCallBackBean callBackBean = new ActivitiCallBackBean(instance.getId(),
                             formData.getData(),
-                            formData.getList_data(),
+                            listData,
                             formData.getData_extra(),
                             instance.getStartUserId(),
                             Calendar.getInstance().getTime());
                     try {
                         method.invoke(service, callBackBean);
-                    } catch (IllegalAccessException e) {
-                        logger.error("invoke method error", e);
-                    } catch (InvocationTargetException e) {
+                        status = 6;
+                    } catch (Exception e) {
+                        status = 7;
                         logger.error("invoke method error", e);
                     }
 
                 } else {
-                    logger.warn(modelCallback.getCallback() + " not found");
+                    status = 7;
+                    logger.error(modelExtra.getCallback() + " not found");
                 }
             } catch (HxException ex) {
+                status = 7;
                 logger.error("find callback method error", ex);
             }
         } else {
-            logger.warn("model " + modelDeployment.getModel_id() + " not found ActCustomModelCallback");
+            logger.debug("model " + modelDeployment.getModel_id() + " not found ActCustomModelCallback");
         }
+        return status;
 
     }
 
@@ -533,7 +595,7 @@ public class ActivitiServiceImpl implements ActivitiService {
                     pvmActivity = pvmTransition.getSource();
                     String type = (String) pvmActivity.getProperty("type");
                     taskDefinitionKey = pvmActivity.getId();
-                    if (type.equals("userTask") || whileCount > 5) {
+                    if ("userTask".equals(type) || whileCount > 5) {
                         break;
                     }
                 } else {
@@ -544,5 +606,31 @@ public class ActivitiServiceImpl implements ActivitiService {
 
         }
         return pvmActivity;
+    }
+
+    private String formDataToString(String formData, List<ActCustomFormField> fields) {
+        if (StringUtils.isEmpty(formData)) {
+            return null;
+        }
+        Map<String, String> fieldMap = new HashMap<>(fields.size());
+        fields.forEach(formField -> {
+            fieldMap.put(formField.getParam_name(), formField.getParam_namechn());
+        });
+        JsonParser parser = new JsonParser();
+        JsonArray array = parser.parse(formData).getAsJsonArray();
+        List<String> contentList = new ArrayList<>(array.size());
+        for (int i = 0; i < array.size(); i++) {
+            JsonObject object = array.get(i).getAsJsonObject();
+            String name = object.get("name").getAsString();
+            String value = object.get("value").getAsString();
+
+            if (fieldMap.containsKey(name)) {
+                contentList.add(fieldMap.get(name) + ":" + value);
+            } else {
+                contentList.add(name + ":" + value);
+            }
+        }
+        return String.join(",", contentList);
+
     }
 }

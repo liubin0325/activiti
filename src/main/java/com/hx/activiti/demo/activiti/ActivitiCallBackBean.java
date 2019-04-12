@@ -12,33 +12,29 @@ public class ActivitiCallBackBean {
     public ActivitiCallBackBean() {
     }
 
-    public ActivitiCallBackBean(String procinst_id,
-                                String data,
-                                String listdata,
-                                String extradata,
-                                String operator,
-                                Date operatedate) {
-        this.procinst_id = procinst_id;
+
+    public ActivitiCallBackBean(String procInstId, String data, String listData, String extraData, String operator, Date operateDate) {
+        this.procInstId = procInstId;
         this.data = data;
-        this.listdata = listdata;
-        this.extradata = extradata;
+        this.listData = listData;
+        this.extraData = extraData;
         this.operator = operator;
-        this.operatedate = operatedate;
+        this.operateDate = operateDate;
     }
 
-    private String procinst_id;
+    private String procInstId;
     private String data;
-    private String listdata;
-    private String extradata;
+    private String listData;
+    private String extraData;
     private String operator;
-    private Date operatedate;
+    private Date operateDate;
 
-    public String getProcinst_id() {
-        return procinst_id;
+    public String getProcInstId() {
+        return procInstId;
     }
 
-    public void setProcinst_id(String procinst_id) {
-        this.procinst_id = procinst_id;
+    public void setProcInstId(String procInstId) {
+        this.procInstId = procInstId;
     }
 
     public String getData() {
@@ -49,20 +45,20 @@ public class ActivitiCallBackBean {
         this.data = data;
     }
 
-    public String getListdata() {
-        return listdata;
+    public String getListData() {
+        return listData;
     }
 
-    public void setListdata(String listdata) {
-        this.listdata = listdata;
+    public void setListData(String listData) {
+        this.listData = listData;
     }
 
-    public String getExtradata() {
-        return extradata;
+    public String getExtraData() {
+        return extraData;
     }
 
-    public void setExtradata(String extradata) {
-        this.extradata = extradata;
+    public void setExtraData(String extraData) {
+        this.extraData = extraData;
     }
 
     public String getOperator() {
@@ -73,11 +69,11 @@ public class ActivitiCallBackBean {
         this.operator = operator;
     }
 
-    public Date getOperatedate() {
-        return operatedate;
+    public Date getOperateDate() {
+        return operateDate;
     }
 
-    public void setOperatedate(Date operatedate) {
-        this.operatedate = operatedate;
+    public void setOperateDate(Date operateDate) {
+        this.operateDate = operateDate;
     }
 }
